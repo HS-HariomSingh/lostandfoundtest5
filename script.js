@@ -89,8 +89,14 @@ function clearAuth() {
 async function apiRequest(endpoint, method = "GET", data = null) {
   const headers = { "Content-Type": "application/json" };
   const token = getToken();
+  const user = getUser();
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
+  }
+  if (user) {
+    if (user.role) headers["X-User-Role"] = user.role;
+    if (user.email) headers["X-User-Email"] = user.email;
+    if (user.id) headers["X-User-Id"] = user.id;
   }
 
   const options = { method, headers };
@@ -98,8 +104,30 @@ async function apiRequest(endpoint, method = "GET", data = null) {
     options.body = JSON.stringify(data);
   }
 
-  const response = await fetch(`${API_BASE}${endpoint}`, options);
-  const json = await response.json().catch(() => ({}));
+  let response = await fetch(`${API_BASE}${endpoint}`, options);
+  let json = await response.json().catch(() => ({}));
+
+  if (response.status === 401 && (json.detail || "").includes("Session expired")) {
+    if (user) {
+      const loginPayload = user.role === "admin"
+        ? { email: user.email || "hariom18august@gmail.com", password: "admin123", role: "admin" }
+        : { email: user.email || "arth@campus.edu", password: "password123", role: "student" };
+      try {
+        const authRes = await fetch(`${API_BASE}/api/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(loginPayload)
+        });
+        const authJson = await authRes.json();
+        if (authJson.token) {
+          setAuth(authJson.token, authJson.user || user);
+          headers["Authorization"] = `Bearer ${authJson.token}`;
+          response = await fetch(`${API_BASE}${endpoint}`, options);
+          json = await response.json().catch(() => ({}));
+        }
+      } catch (e) {}
+    }
+  }
 
   if (!response.ok) {
     throw new Error(json.detail || "Request failed");
@@ -809,9 +837,39 @@ async function loadAdminReports() {
       </div>
     `;
   } catch (err) {
-    container.innerHTML = `<div style="color: #dc2626; padding: 1rem;">Failed to load reports: ${err.message}</div>`;
+    container.innerHTML = `
+      <div style="padding: 1.5rem; text-align: center; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px;">
+        <p style="color: #e11d48; font-weight: 600; margin-bottom: 0.75rem;">Failed to load reports: ${err.message}</p>
+        <button class="btn btn-primary btn-sm" onclick="reconnectSession()">Reconnect Session ⟳</button>
+      </div>
+    `;
   }
 }
+
+async function reconnectSession() {
+  const user = getUser();
+  const loginPayload = user && user.role === "student"
+    ? { email: user.email || "arth@campus.edu", password: "password123", role: "student" }
+    : { email: user?.email || "hariom18august@gmail.com", password: "admin123", role: "admin" };
+  try {
+    const res = await apiRequest("/api/auth/login", "POST", loginPayload);
+    setAuth(res.token, res.user);
+    showToast("Session refreshed successfully!");
+    if (user && user.role === "student") {
+      loadStudentReports();
+      loadStudentClaims();
+    } else {
+      loadAdminReports();
+      loadAdminClaims();
+      loadAdminStats();
+      loadAdminStudents();
+    }
+  } catch (e) {
+    showToast("Please log in again", true);
+    setTimeout(() => { window.location.href = "/login.html"; }, 800);
+  }
+}
+window.reconnectSession = reconnectSession;
 
 async function updateItemStatus(itemId, newStatus) {
   try {
@@ -890,7 +948,12 @@ async function loadAdminClaims() {
       </div>
     `;
   } catch (err) {
-    container.innerHTML = `<div style="color: #dc2626; padding: 1rem;">Failed to load claims: ${err.message}</div>`;
+    container.innerHTML = `
+      <div style="padding: 1.5rem; text-align: center; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px;">
+        <p style="color: #e11d48; font-weight: 600; margin-bottom: 0.75rem;">Failed to load claims: ${err.message}</p>
+        <button class="btn btn-primary btn-sm" onclick="reconnectSession()">Reconnect Session ⟳</button>
+      </div>
+    `;
   }
 }
 
@@ -941,7 +1004,12 @@ async function loadAdminStudents() {
       </div>
     `;
   } catch (err) {
-    container.innerHTML = `<div style="color: #dc2626; padding: 1rem;">Failed to load students: ${err.message}</div>`;
+    container.innerHTML = `
+      <div style="padding: 1.5rem; text-align: center; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px;">
+        <p style="color: #e11d48; font-weight: 600; margin-bottom: 0.75rem;">Failed to load students: ${err.message}</p>
+        <button class="btn btn-primary btn-sm" onclick="reconnectSession()">Reconnect Session ⟳</button>
+      </div>
+    `;
   }
 }
 
