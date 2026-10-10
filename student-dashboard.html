@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Dashboard - Campus Lost and Found</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="nav-container">
+      <a href="/index.html" class="brand-logo">
+        <div class="brand-icon">🔍</div>
+        <span>Campus Lost & Found</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="/index.html" class="nav-link">Home</a></li>
+        <li><a href="/items.html" class="nav-link">Browse Items</a></li>
+        <li><a href="/student-dashboard.html" class="nav-link active">Student Portal</a></li>
+      </ul>
+      <div id="nav-actions" class="nav-actions"></div>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <div class="card" style="margin-bottom: 2rem; background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%); border-color: var(--primary-border);">
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <span class="user-badge" style="margin-bottom: 0.5rem;">Registered Student</span>
+          <h1 id="student-name" style="font-size: 1.6rem; font-weight: 800; color: #1e3a8a;">Student Name</h1>
+          <div style="display: flex; gap: 1.25rem; font-size: 0.85rem; color: #64748b; margin-top: 0.35rem; flex-wrap: wrap;">
+            <span>ID: <strong id="student-id-display" style="color: #0f172a;"></strong></span>
+            <span>Dept: <strong id="student-dept" style="color: #0f172a;"></strong></span>
+            <span>Email: <strong id="student-email" style="color: #0f172a;"></strong></span>
+          </div>
+        </div>
+        <a href="/items.html" class="btn btn-outline btn-sm">Explore Campus Items →</a>
+      </div>
+    </div>
+
+    <div class="tab-nav">
+      <button id="tab-btn-report" class="tab-btn active" onclick="switchStudentTab('report')">Submit Report</button>
+      <button id="tab-btn-my-reports" class="tab-btn" onclick="switchStudentTab('my-reports'); loadStudentReports();">My Reported Items</button>
+      <button id="tab-btn-my-claims" class="tab-btn" onclick="switchStudentTab('my-claims'); loadStudentClaims();">My Ownership Claims</button>
+    </div>
+
+    <div id="pane-report" class="student-tab-pane card">
+      <h2 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 0.25rem;">Report a Lost or Found Belonging</h2>
+      <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 1.5rem;">Fill out the details accurately to help campus security cross-reference property</p>
+
+      <form id="report-item-form">
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem;">
+          <div class="form-group">
+            <label for="report-title" class="form-label">Item Name / Title</label>
+            <input type="text" id="report-title" class="form-control" required placeholder="e.g. Dell XPS Laptop or Blue Backpack">
+          </div>
+
+          <div class="form-group">
+            <label for="report-type" class="form-label">Report Type</label>
+            <select id="report-type" class="form-control" required>
+              <option value="lost">I Lost This Item</option>
+              <option value="found">I Found This Item</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="report-category" class="form-label">Category</label>
+            <select id="report-category" class="form-control" required>
+              <option value="Electronics">Electronics</option>
+              <option value="Personal Belongings">Personal Belongings</option>
+              <option value="Study Materials">Study Materials</option>
+              <option value="Accessories">Accessories</option>
+              <option value="Clothing">Clothing</option>
+              <option value="Documents / IDs">Documents / IDs</option>
+              <option value="Others">Others</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="report-date" class="form-label">Date Lost or Found</label>
+            <input type="date" id="report-date" class="form-control" required>
+          </div>
+        </div>
+
+        <div class="form-group" style="margin-top: 1.25rem;">
+          <label for="report-location" class="form-label">Campus Location</label>
+          <input type="text" id="report-location" class="form-control" required placeholder="e.g. Science Complex Lab 204 or Main Quad Benches">
+        </div>
+
+        <div class="form-group" style="margin-top: 1.25rem;">
+          <label for="report-desc" class="form-label">Description & Distinguishing Features</label>
+          <textarea id="report-desc" class="form-control" required placeholder="Provide color, brand, model, scratches, stickers, condition, or items inside..."></textarea>
+        </div>
+
+        <div class="form-group" style="margin-top: 1.25rem;">
+          <label for="report-image" class="form-label">Image URL (Optional)</label>
+          <input type="url" id="report-image" class="form-control" placeholder="https://images.unsplash.com/... or paste image link">
+          <span style="font-size: 0.78rem; color: #64748b; margin-top: 0.2rem;">Leave empty to use a standard category illustration placeholder.</span>
+        </div>
+
+        <div style="margin-top: 1.75rem; display: flex; justify-content: flex-end;">
+          <button type="submit" class="btn btn-primary" style="padding: 0.7rem 1.75rem;">Submit Report for Review</button>
+        </div>
+      </form>
+    </div>
+
+    <div id="pane-my-reports" class="student-tab-pane" style="display: none;">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">My Reported Items</h2>
+          <p class="section-subtitle">Track the verification and retrieval status of reports you have submitted</p>
+        </div>
+      </div>
+      <div id="my-reports-list"></div>
+    </div>
+
+    <div id="pane-my-claims" class="student-tab-pane" style="display: none;">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">My Ownership Claims</h2>
+          <p class="section-subtitle">Status of claims you have filed for found campus property</p>
+        </div>
+      </div>
+      <div id="my-claims-list"></div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div style="max-width: 1200px; margin: 0 auto;">
+      Campus Lost and Found Portal &bull; Student Affairs & Security Office &bull; Student Activity Center Rm 104
+    </div>
+  </footer>
+
+  <script src="/script.js"></script>
+</body>
+</html>

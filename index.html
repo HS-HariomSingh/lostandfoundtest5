@@ -1,18 +1,140 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Campus Lost and Found</title>
-    <meta name="description" content="A college lost and found portal for students and administrators to report items, track claims, and manage campus belongings." />
-    <meta property="og:title" content="Campus Lost and Found" />
-    <meta property="og:description" content="A college lost and found portal for students and administrators to report items, track claims, and manage campus belongings." />
-    <meta property="og:type" content="website" />
-    <meta name="twitter:card" content="summary_large_image" />
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Campus Lost and Found Portal</title>
+  <meta name="description" content="A college lost and found portal for students and administrators to report items, track claims, and manage campus belongings." />
+  <meta property="og:title" content="Campus Lost and Found" />
+  <meta property="og:description" content="A college lost and found portal for students and administrators to report items, track claims, and manage campus belongings." />
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="nav-container">
+      <a href="/index.html" class="brand-logo">
+        <div class="brand-icon">🔍</div>
+        <span>Campus Lost & Found</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="/index.html" class="nav-link active">Home</a></li>
+        <li><a href="/items.html" class="nav-link">Browse Items</a></li>
+        <li><a href="/login.html" class="nav-link">Login</a></li>
+      </ul>
+      <div id="nav-actions" class="nav-actions"></div>
+    </div>
+  </header>
 
+  <main class="main-content">
+    <section class="hero-banner">
+      <span class="hero-tag">Official Campus Service</span>
+      <h1 class="hero-title">Misplaced something on campus? We're here to help.</h1>
+      <p class="hero-desc">
+        A centralized, secure portal for students, faculty, and administrators to report lost belongings, log found items, and safely coordinate claims across academic buildings, libraries, and student centers.
+      </p>
+      <div class="hero-buttons">
+        <a href="/items.html" class="btn btn-primary">Browse Reported Items</a>
+        <a href="/login.html" class="btn btn-outline">Report an Item</a>
+      </div>
+    </section>
+
+    <section class="stats-row">
+      <div class="stat-card">
+        <span class="stat-num">500+</span>
+        <span class="stat-label">Campus Students Registered</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num">94%</span>
+        <span class="stat-label">Claim Verification Rate</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num">24/7</span>
+        <span class="stat-label">Online Report Submission</span>
+      </div>
+      <div class="stat-card">
+        <span class="stat-num">1</span>
+        <span class="stat-label">Centralized Security Desk</span>
+      </div>
+    </section>
+
+    <div class="section-head">
+      <div>
+        <h2 class="section-title">Recently Reported Items</h2>
+        <p class="section-subtitle">Latest verified items reported lost or turned in across campus grounds</p>
+      </div>
+      <a href="/items.html" class="btn btn-outline btn-sm">View All Items →</a>
+    </div>
+
+    <div id="recent-items-grid" class="items-grid"></div>
+
+    <section style="margin-top: 3.5rem; background: #ffffff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 2.5rem; box-shadow: var(--shadow-sm);">
+      <h2 style="font-size: 1.35rem; font-weight: 700; margin-bottom: 1.5rem; text-align: center;">How Campus Lost & Found Works</h2>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.75rem;">
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+          <div style="width: 40px; height: 40px; border-radius: 50%; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; border: 1px solid #bfdbfe;">1</div>
+          <h3 style="font-size: 1.05rem; font-weight: 600;">Report What You Lost or Found</h3>
+          <p style="font-size: 0.88rem; color: #64748b;">Log in with your college student credentials and provide details like date, specific location, and descriptions.</p>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+          <div style="width: 40px; height: 40px; border-radius: 50%; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; border: 1px solid #bfdbfe;">2</div>
+          <h3 style="font-size: 1.05rem; font-weight: 600;">Administrative Review</h3>
+          <p style="font-size: 0.88rem; color: #64748b;">The Campus Security & Lost-Found Office reviews each report to maintain safety, accuracy, and clear records.</p>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+          <div style="width: 40px; height: 40px; border-radius: 50%; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1rem; border: 1px solid #bfdbfe;">3</div>
+          <h3 style="font-size: 1.05rem; font-weight: 600;">Submit Claim & Collect</h3>
+          <p style="font-size: 0.88rem; color: #64748b;">Recognize your property in the catalog? File a claim with proof of ownership and pick it up at the security office.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="item-modal" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="item-modal-title" class="modal-title">Item Details</h3>
+        <button class="modal-close" onclick="closeModal('item-modal')">&times;</button>
+      </div>
+      <div id="item-modal-body" class="modal-body"></div>
+    </div>
+  </div>
+
+  <div id="claim-modal" class="modal-backdrop">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Submit Ownership Claim</h3>
+        <button class="modal-close" onclick="closeModal('claim-modal')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="claim-form">
+          <input type="hidden" id="claim-item-id">
+          <div class="form-group" style="margin-bottom: 0.75rem;">
+            <label class="form-label">Item to Claim</label>
+            <div id="claim-item-title-display" style="font-weight: 600; color: #2563eb; padding: 0.4rem 0;"></div>
+          </div>
+          <div class="form-group" style="margin-bottom: 0.75rem;">
+            <label for="claim-phone" class="form-label">Contact Phone</label>
+            <input type="text" id="claim-phone" class="form-control" required placeholder="555-0100">
+          </div>
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label for="claim-proof" class="form-label">Proof of Ownership / Identifying Details</label>
+            <textarea id="claim-proof" class="form-control" required placeholder="Describe specific markings, passcodes, internal contents, serial numbers, or stickers not shown publicly..."></textarea>
+          </div>
+          <div style="display: flex; gap: 0.5rem; justify-content: flex-end;">
+            <button type="button" class="btn btn-subtle" onclick="closeModal('claim-modal')">Cancel</button>
+            <button type="submit" class="btn btn-primary">Submit Claim</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div style="max-width: 1200px; margin: 0 auto;">
+      Campus Lost and Found Portal &bull; Student Affairs & Security Office &bull; Student Activity Center Rm 104
+    </div>
+  </footer>
+
+  <script src="/script.js"></script>
+</body>
+</html>

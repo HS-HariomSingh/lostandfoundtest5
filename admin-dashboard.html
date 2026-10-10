@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Campus Lost and Found</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="nav-container">
+      <a href="/index.html" class="brand-logo">
+        <div class="brand-icon">🛡️</div>
+        <span>Campus Lost & Found &bull; Admin</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="/index.html" class="nav-link">Home</a></li>
+        <li><a href="/items.html" class="nav-link">Browse Items</a></li>
+        <li><a href="/admin-dashboard.html" class="nav-link active">Admin Panel</a></li>
+      </ul>
+      <div id="nav-actions" class="nav-actions"></div>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <div class="card" style="margin-bottom: 2rem; background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%); border-color: var(--primary-border);">
+      <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+        <div>
+          <span class="user-badge" style="background-color: #fee2e2; color: #b91c1c; border-color: #fca5a5; margin-bottom: 0.5rem;">Security Administration</span>
+          <h1 style="font-size: 1.6rem; font-weight: 800; color: #1e3a8a;">Campus Lost & Found Operations Console</h1>
+          <p style="font-size: 0.85rem; color: #64748b; margin-top: 0.25rem;">
+            Operating Office: <strong id="admin-office" style="color: #0f172a;">Campus Security & Lost-Found Desk</strong>
+          </p>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <button class="btn btn-outline btn-sm" onclick="loadAdminReports(); loadAdminClaims(); loadAdminStats();">Refresh Data ⟳</button>
+        </div>
+      </div>
+    </div>
+
+    <section class="stats-row">
+      <div class="stat-card">
+        <span id="stat-total-students" class="stat-num">-</span>
+        <span class="stat-label">Total Registered Students</span>
+      </div>
+      <div class="stat-card">
+        <span id="stat-lost-items" class="stat-num">-</span>
+        <span class="stat-label">Reported Lost Items</span>
+      </div>
+      <div class="stat-card">
+        <span id="stat-found-items" class="stat-num">-</span>
+        <span class="stat-label">Reported Found Items</span>
+      </div>
+      <div class="stat-card" style="border-left: 4px solid #d97706;">
+        <span id="stat-pending-reports" class="stat-num" style="color: #d97706;">-</span>
+        <span class="stat-label">Pending Report Approvals</span>
+      </div>
+      <div class="stat-card" style="border-left: 4px solid #2563eb;">
+        <span id="stat-pending-claims" class="stat-num" style="color: #2563eb;">-</span>
+        <span class="stat-label">Pending Ownership Claims</span>
+      </div>
+    </section>
+
+    <div class="tab-nav">
+      <button id="admin-tab-reports" class="tab-btn active" onclick="switchAdminTab('reports'); loadAdminReports();">Review Reports</button>
+      <button id="admin-tab-claims" class="tab-btn" onclick="switchAdminTab('claims'); loadAdminClaims();">Manage Claims</button>
+      <button id="admin-tab-students" class="tab-btn" onclick="switchAdminTab('students'); loadAdminStudents();">Registered Students</button>
+    </div>
+
+    <div id="admin-pane-reports" class="admin-tab-pane">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">Item Reports Management</h2>
+          <p class="section-subtitle">Approve student submissions, reject duplicates, mark resolved items, or delete inappropriate content</p>
+        </div>
+      </div>
+      <div id="admin-reports-container"></div>
+    </div>
+
+    <div id="admin-pane-claims" class="admin-tab-pane" style="display: none;">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">Claim Submissions Management</h2>
+          <p class="section-subtitle">Review ownership proofs submitted by students, contact claimants, and confirm handovers</p>
+        </div>
+      </div>
+      <div id="admin-claims-container"></div>
+    </div>
+
+    <div id="admin-pane-students" class="admin-tab-pane" style="display: none;">
+      <div class="section-head">
+        <div>
+          <h2 class="section-title">Campus Student Directory</h2>
+          <p class="section-subtitle">Students registered in the campus lost and found database with verified contact details</p>
+        </div>
+      </div>
+      <div id="admin-students-container"></div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div style="max-width: 1200px; margin: 0 auto;">
+      Campus Lost and Found Portal &bull; Student Affairs & Security Office &bull; Student Activity Center Rm 104
+    </div>
+  </footer>
+
+  <script src="/script.js"></script>
+</body>
+</html>

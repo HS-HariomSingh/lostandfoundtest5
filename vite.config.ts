@@ -1,14 +1,19 @@
 import tailwindcss from '@tailwindcss/vite';
-import react from '@vitejs/plugin-react';
 import path from 'path';
-import {defineConfig} from 'vite';
+import { defineConfig } from 'vite';
 
 export default defineConfig(() => {
   return {
-    plugins: [react(), tailwindcss()],
-    resolve: {
-      alias: {
-        '@': path.resolve(__dirname, '.'),
+    plugins: [tailwindcss()],
+    build: {
+      rollupOptions: {
+        input: {
+          main: path.resolve(__dirname, 'index.html'),
+          items: path.resolve(__dirname, 'items.html'),
+          login: path.resolve(__dirname, 'login.html'),
+          studentDashboard: path.resolve(__dirname, 'student-dashboard.html'),
+          adminDashboard: path.resolve(__dirname, 'admin-dashboard.html'),
+        },
       },
     },
     server: {

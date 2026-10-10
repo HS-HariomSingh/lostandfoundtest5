@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Campus Lost and Found</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="nav-container">
+      <a href="/index.html" class="brand-logo">
+        <div class="brand-icon">🔍</div>
+        <span>Campus Lost & Found</span>
+      </a>
+      <ul class="nav-links">
+        <li><a href="/index.html" class="nav-link">Home</a></li>
+        <li><a href="/items.html" class="nav-link">Browse Items</a></li>
+        <li><a href="/login.html" class="nav-link active">Login</a></li>
+      </ul>
+      <div id="nav-actions" class="nav-actions"></div>
+    </div>
+  </header>
+
+  <main class="main-content">
+    <div class="auth-container card">
+      <div style="text-align: center; margin-bottom: 1.5rem;">
+        <div style="width: 48px; height: 48px; background: #eff6ff; color: #2563eb; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 0.75rem auto; font-size: 1.4rem; border: 1px solid #bfdbfe;">🔐</div>
+        <h1 style="font-size: 1.4rem; font-weight: 700; color: #0f172a;">Portal Authentication</h1>
+        <p style="font-size: 0.85rem; color: #64748b; margin-top: 0.25rem;">Access your student reporting desk or administrative portal</p>
+      </div>
+
+      <div class="tab-nav">
+        <button id="tab-student" class="tab-btn active" style="flex: 1; text-align: center;">Student Login</button>
+        <button id="tab-admin" class="tab-btn" style="flex: 1; text-align: center;">Admin Login</button>
+      </div>
+
+      <form id="login-form">
+        <input type="hidden" id="login-role" value="student">
+
+        <div class="form-group" style="margin-bottom: 1rem;">
+          <label for="login-email" class="form-label">Campus Email</label>
+          <input type="email" id="login-email" class="form-control" required placeholder="arth@campus.edu">
+        </div>
+
+        <div class="form-group" style="margin-bottom: 1.25rem;">
+          <label for="login-password" class="form-label">Password</label>
+          <input type="password" id="login-password" class="form-control" required placeholder="••••••••">
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block" style="padding: 0.7rem;">Sign In</button>
+      </form>
+
+      <div class="quick-creds">
+        <div style="font-weight: 700; color: #1e40af; font-size: 0.8rem; text-transform: uppercase;">Quick Demo Credentials</div>
+        <button class="quick-creds-btn" onclick="fillDemo('arth@campus.edu', 'password123', 'student')">
+          Student: Arth (CS) &bull; password123
+        </button>
+        <button class="quick-creds-btn" onclick="fillDemo('shivam@campus.edu', 'password123', 'student')">
+          Student: Shivam (ECE) &bull; password123
+        </button>
+        <button class="quick-creds-btn" onclick="fillDemo('hariom18august@gmail.com', 'admin123', 'admin')">
+          Administrator: Hariom Singh &bull; admin123
+        </button>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div style="max-width: 1200px; margin: 0 auto;">
+      Campus Lost and Found Portal &bull; Student Affairs & Security Office &bull; Student Activity Center Rm 104
+    </div>
+  </footer>
+
+  <script src="/script.js"></script>
+</body>
+</html>
