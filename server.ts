@@ -94,6 +94,31 @@ function getSessionUser(req: express.Request): any | null {
   return sessions[parts[1]] || null;
 }
 
+if (process.env.BACKEND_URL) {
+  const backendBase = process.env.BACKEND_URL.replace(/\/$/, "");
+  app.use("/api", async (req, res, next) => {
+    try {
+      const targetUrl = `${backendBase}/api${req.url}`;
+      const headers: Record<string, string> = {};
+      for (const [k, v] of Object.entries(req.headers)) {
+        if (typeof v === "string" && k.toLowerCase() !== "host") {
+          headers[k] = v;
+        }
+      }
+      const response = await fetch(targetUrl, {
+        method: req.method,
+        headers,
+        body: ["GET", "HEAD"].includes(req.method) ? undefined : JSON.stringify(req.body)
+      });
+      res.status(response.status);
+      const data = await response.text();
+      res.send(data);
+    } catch (err) {
+      next();
+    }
+  });
+}
+
 app.post("/api/auth/login", async (req, res) => {
   const { email, password, role } = req.body;
   if (!email || !password) {
