@@ -104,6 +104,150 @@ export function getFirebaseDiagnostics() {
   };
 }
 
+export function sanitizeForFirestore(obj: any): any {
+  if (obj === undefined) return null;
+  if (obj === null) return null;
+  if (Array.isArray(obj)) {
+    return obj.map(sanitizeForFirestore);
+  }
+  if (typeof obj === "object" && !(obj instanceof Date)) {
+    const clean: Record<string, any> = {};
+    for (const [k, v] of Object.entries(obj)) {
+      if (v !== undefined) {
+        clean[k] = sanitizeForFirestore(v);
+      }
+    }
+    return clean;
+  }
+  return obj;
+}
+
+export async function syncAllDataToFirestore(): Promise<{
+  success: boolean;
+  message: string;
+  counts: {
+    items: number;
+    claims: number;
+    students: number;
+    admins: number;
+    categories: number;
+    locations: number;
+    departments: number;
+  };
+  projectId?: string;
+  databaseId?: string;
+}> {
+  try {
+    const db = getFirebaseDb();
+    const config = loadFirebaseConfig();
+    const localDbPath = path.resolve(process.cwd(), "database", "local_db.json");
+    if (!fs.existsSync(localDbPath)) {
+      return {
+        success: false,
+        message: "Local database source not found",
+        counts: { items: 0, claims: 0, students: 0, admins: 0, categories: 0, locations: 0, departments: 0 }
+      };
+    }
+
+    const localData = JSON.parse(fs.readFileSync(localDbPath, "utf-8"));
+    let itemsCount = 0;
+    let claimsCount = 0;
+    let studentsCount = 0;
+    let adminsCount = 0;
+    let categoriesCount = 0;
+    let locationsCount = 0;
+    let departmentsCount = 0;
+
+    for (const [id, cat] of Object.entries(localData.category || {})) {
+      await setDoc(doc(db, "categories", id), sanitizeForFirestore(cat), { merge: true });
+      categoriesCount++;
+    }
+    for (const [id, loc] of Object.entries(localData.location || {})) {
+      await setDoc(doc(db, "locations", id), sanitizeForFirestore(loc), { merge: true });
+      locationsCount++;
+    }
+    for (const [id, dept] of Object.entries(localData.department || {})) {
+      await setDoc(doc(db, "departments", id), sanitizeForFirestore(dept), { merge: true });
+      departmentsCount++;
+    }
+    for (const [id, std] of Object.entries(localData.student || {})) {
+      await setDoc(doc(db, "students", id), sanitizeForFirestore(std), { merge: true });
+      studentsCount++;
+    }
+    for (const [id, adm] of Object.entries(localData.admin || {})) {
+      await setDoc(doc(db, "admins", id), sanitizeForFirestore(adm), { merge: true });
+      adminsCount++;
+    }
+    for (const [id, itm] of Object.entries(localData.item || {})) {
+      await setDoc(doc(db, "items", id), sanitizeForFirestore(itm), { merge: true });
+      itemsCount++;
+    }
+    for (const [id, clm] of Object.entries(localData.claim || {})) {
+      await setDoc(doc(db, "claims", id), sanitizeForFirestore(clm), { merge: true });
+      claimsCount++;
+    }
+
+    console.log(`[Firebase] ✅ Complete sync to Firestore finished: ${itemsCount} items, ${claimsCount} claims.`);
+    return {
+      success: true,
+      message: `Synchronized ${itemsCount} items and ${claimsCount} claims to Firebase Firestore (${config?.firestoreDatabaseId})`,
+      counts: {
+        items: itemsCount,
+        claims: claimsCount,
+        students: studentsCount,
+        admins: adminsCount,
+        categories: categoriesCount,
+        locations: locationsCount,
+        departments: departmentsCount
+      },
+      projectId: config?.projectId,
+      databaseId: config?.firestoreDatabaseId
+    };
+  } catch (err: any) {
+    console.error("[Firebase] Sync failed:", err.message);
+    return {
+      success: false,
+      message: `Sync failed: ${err.message}`,
+      counts: { items: 0, claims: 0, students: 0, admins: 0, categories: 0, locations: 0, departments: 0 }
+    };
+  }
+}
+
+export async function getAllFirestoreDocuments(): Promise<any> {
+  const db = getFirebaseDb();
+  const config = loadFirebaseConfig();
+  const [itemsSnap, claimsSnap, studentsSnap, logsSnap] = await Promise.all([
+    getDocs(collection(db, "items")),
+    getDocs(collection(db, "claims")),
+    getDocs(collection(db, "students")),
+    getDocs(collection(db, "item_status_logs"))
+  ]);
+
+  const items: any[] = [];
+  itemsSnap.forEach((d) => items.push({ docId: d.id, ...d.data() }));
+
+  const claims: any[] = [];
+  claimsSnap.forEach((d) => claims.push({ docId: d.id, ...d.data() }));
+
+  const students: any[] = [];
+  studentsSnap.forEach((d) => students.push({ docId: d.id, ...d.data() }));
+
+  const logs: any[] = [];
+  logsSnap.forEach((d) => logs.push({ docId: d.id, ...d.data() }));
+
+  return {
+    projectId: config?.projectId,
+    databaseId: config?.firestoreDatabaseId,
+    total_documents: items.length + claims.length + students.length + logs.length,
+    collections: {
+      items: { count: items.length, docs: items },
+      claims: { count: claims.length, docs: claims },
+      students: { count: students.length, docs: students },
+      item_status_logs: { count: logs.length, docs: logs }
+    }
+  };
+}
+
 export async function initFirebaseDatabase(): Promise<void> {
   console.log("[Firebase] Initializing Firebase Firestore database...");
   try {
@@ -120,49 +264,13 @@ export async function initFirebaseDatabase(): Promise<void> {
 
     const localData = JSON.parse(fs.readFileSync(localDbPath, "utf-8"));
 
-    // Check if categories are already in Firestore
-    const catSnap = await getDocs(collection(db, "categories"));
-    if (catSnap.empty) {
+    // Check if items are in Firestore
+    const itemsSnap = await getDocs(collection(db, "items"));
+    if (itemsSnap.empty) {
       console.log("[Firebase] Seeding initial data from local catalog into Firestore...");
-
-      // Seed categories
-      for (const [id, cat] of Object.entries(localData.category || {})) {
-        await setDoc(doc(db, "categories", id), cat as any, { merge: true });
-      }
-
-      // Seed locations
-      for (const [id, loc] of Object.entries(localData.location || {})) {
-        await setDoc(doc(db, "locations", id), loc as any, { merge: true });
-      }
-
-      // Seed departments
-      for (const [id, dept] of Object.entries(localData.department || {})) {
-        await setDoc(doc(db, "departments", id), dept as any, { merge: true });
-      }
-
-      // Seed students
-      for (const [id, std] of Object.entries(localData.student || {})) {
-        await setDoc(doc(db, "students", id), std as any, { merge: true });
-      }
-
-      // Seed admins
-      for (const [id, adm] of Object.entries(localData.admin || {})) {
-        await setDoc(doc(db, "admins", id), adm as any, { merge: true });
-      }
-
-      // Seed items
-      for (const [id, itm] of Object.entries(localData.item || {})) {
-        await setDoc(doc(db, "items", id), itm as any, { merge: true });
-      }
-
-      // Seed claims
-      for (const [id, clm] of Object.entries(localData.claim || {})) {
-        await setDoc(doc(db, "claims", id), clm as any, { merge: true });
-      }
-
-      console.log("[Firebase] ✅ Initial data successfully seeded into Firestore!");
+      await syncAllDataToFirestore();
     } else {
-      console.log(`[Firebase] Firestore already contains collections (${catSnap.size} categories found).`);
+      console.log(`[Firebase] Firestore already contains collections (${itemsSnap.size} items found).`);
     }
   } catch (err: any) {
     console.error("[Firebase] Initialization error:", err.message);
@@ -236,29 +344,30 @@ export async function getFirestoreItemById(id: string): Promise<any | null> {
 export async function saveFirestoreItem(item: any): Promise<any> {
   try {
     const db = getFirebaseDb();
-    const itemId = item.id || `item_${Date.now()}`;
-    const cleanItem = {
+    const itemId = item.id || item.item_id || `item_${Date.now()}`;
+    const cleanItem = sanitizeForFirestore({
       ...item,
       id: itemId,
       item_id: itemId,
       updated_at: new Date().toISOString()
-    };
+    });
     await setDoc(doc(db, "items", itemId), cleanItem, { merge: true });
 
     // Also write to item_status_logs
     const logId = `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    await setDoc(doc(db, "item_status_logs", logId), {
+    await setDoc(doc(db, "item_status_logs", logId), sanitizeForFirestore({
       log_id: logId,
       item_id: itemId,
       old_status: null,
       new_status: cleanItem.status || "pending",
       changed_by: cleanItem.student_id || "student",
       changed_at: new Date().toISOString()
-    });
+    }));
 
+    console.log(`[Firebase] ✅ Stored item '${itemId}' (${cleanItem.title}) successfully in Firestore collection 'items'`);
     return cleanItem;
   } catch (e: any) {
-    console.error("[Firebase] saveFirestoreItem error:", e.message);
+    console.error("[Firebase] ❌ saveFirestoreItem error:", e.message);
     throw e;
   }
 }
@@ -268,28 +377,29 @@ export async function updateFirestoreItemStatus(id: string, newStatus: string, a
     const db = getFirebaseDb();
     const itemRef = doc(db, "items", id);
     const existing = await getDoc(itemRef);
-    const oldStatus = existing.exists() ? existing.data().status : "pending";
+    const oldStatus = existing.exists() ? existing.data()?.status || "pending" : "pending";
 
-    await updateDoc(itemRef, {
+    await setDoc(itemRef, sanitizeForFirestore({
       status: newStatus,
       reviewed_by: adminId || "adm_001",
       updated_at: new Date().toISOString()
-    });
+    }), { merge: true });
 
     // Write to item_status_logs
     const logId = `log_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-    await setDoc(doc(db, "item_status_logs", logId), {
+    await setDoc(doc(db, "item_status_logs", logId), sanitizeForFirestore({
       log_id: logId,
       item_id: id,
       old_status: oldStatus,
       new_status: newStatus,
       changed_by: adminId || "adm_001",
       changed_at: new Date().toISOString()
-    });
+    }));
 
+    console.log(`[Firebase] ✅ Updated item '${id}' status to '${newStatus}' in Firestore`);
     return true;
   } catch (e: any) {
-    console.error("[Firebase] updateFirestoreItemStatus error:", e.message);
+    console.error("[Firebase] ❌ updateFirestoreItemStatus error:", e.message);
     throw e;
   }
 }
@@ -298,9 +408,10 @@ export async function deleteFirestoreItem(id: string): Promise<boolean> {
   try {
     const db = getFirebaseDb();
     await deleteDoc(doc(db, "items", id));
+    console.log(`[Firebase] ✅ Deleted item '${id}' from Firestore`);
     return true;
   } catch (e: any) {
-    console.error("[Firebase] deleteFirestoreItem error:", e.message);
+    console.error("[Firebase] ❌ deleteFirestoreItem error:", e.message);
     throw e;
   }
 }
@@ -324,7 +435,7 @@ export async function getFirestoreClaims(studentId?: string): Promise<any[]> {
     claims.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     return claims;
   } catch (e: any) {
-    console.error("[Firebase] getFirestoreClaims error:", e.message);
+    console.error("[Firebase] ❌ getFirestoreClaims error:", e.message);
     throw e;
   }
 }
@@ -332,17 +443,18 @@ export async function getFirestoreClaims(studentId?: string): Promise<any[]> {
 export async function saveFirestoreClaim(claim: any): Promise<any> {
   try {
     const db = getFirebaseDb();
-    const claimId = claim.id || `clm_${Date.now()}`;
-    const cleanClaim = {
+    const claimId = claim.id || claim.claim_id || `clm_${Date.now()}`;
+    const cleanClaim = sanitizeForFirestore({
       ...claim,
       id: claimId,
       claim_id: claimId,
       created_at: claim.created_at || new Date().toISOString()
-    };
+    });
     await setDoc(doc(db, "claims", claimId), cleanClaim, { merge: true });
+    console.log(`[Firebase] ✅ Stored claim '${claimId}' for item '${cleanClaim.item_id}' in Firestore collection 'claims'`);
     return cleanClaim;
   } catch (e: any) {
-    console.error("[Firebase] saveFirestoreClaim error:", e.message);
+    console.error("[Firebase] ❌ saveFirestoreClaim error:", e.message);
     throw e;
   }
 }
@@ -353,25 +465,26 @@ export async function updateFirestoreClaimStatus(id: string, newStatus: string, 
     const claimRef = doc(db, "claims", id);
     const claimSnap = await getDoc(claimRef);
 
-    await updateDoc(claimRef, {
+    await setDoc(claimRef, sanitizeForFirestore({
       status: newStatus,
       reviewed_by: adminId || "adm_001",
       updated_at: new Date().toISOString()
-    });
+    }), { merge: true });
 
     if (claimSnap.exists() && newStatus === "approved") {
       const claimData = claimSnap.data();
-      if (claimData.item_id) {
-        await updateDoc(doc(db, "items", claimData.item_id), {
+      if (claimData?.item_id) {
+        await setDoc(doc(db, "items", claimData.item_id), sanitizeForFirestore({
           status: "resolved",
           reviewed_by: adminId || "adm_001",
           updated_at: new Date().toISOString()
-        });
+        }), { merge: true });
       }
     }
+    console.log(`[Firebase] ✅ Updated claim '${id}' status to '${newStatus}' in Firestore`);
     return true;
   } catch (e: any) {
-    console.error("[Firebase] updateFirestoreClaimStatus error:", e.message);
+    console.error("[Firebase] ❌ updateFirestoreClaimStatus error:", e.message);
     throw e;
   }
 }

@@ -1,0 +1,576 @@
+{
+  "department": {
+    "dept_cs": {
+      "department_id": "dept_cs",
+      "department_name": "Computer Science"
+    },
+    "dept_ec": {
+      "department_id": "dept_ec",
+      "department_name": "Electronics & Communication"
+    },
+    "dept_me": {
+      "department_id": "dept_me",
+      "department_name": "Mechanical Engineering"
+    },
+    "dept_bt": {
+      "department_id": "dept_bt",
+      "department_name": "Biotechnology"
+    },
+    "dept_ba": {
+      "department_id": "dept_ba",
+      "department_name": "Business Administration"
+    }
+  },
+  "category": {
+    "cat_elec": {
+      "category_id": "cat_elec",
+      "category_name": "Electronics"
+    },
+    "cat_belong": {
+      "category_id": "cat_belong",
+      "category_name": "Personal Belongings"
+    },
+    "cat_study": {
+      "category_id": "cat_study",
+      "category_name": "Study Materials"
+    },
+    "cat_access": {
+      "category_id": "cat_access",
+      "category_name": "Accessories"
+    },
+    "cat_docs": {
+      "category_id": "cat_docs",
+      "category_name": "Cards & Documents"
+    },
+    "cat_other": {
+      "category_id": "cat_other",
+      "category_name": "Other"
+    },
+    "cat_00605e": {
+      "category_id": "cat_00605e",
+      "category_name": "Personal Items"
+    },
+    "cat_f64ab6": {
+      "category_id": "cat_f64ab6",
+      "category_name": "Clothing"
+    }
+  },
+  "location": {
+    "loc_lib": {
+      "location_id": "loc_lib",
+      "location_name": "Main Campus Library 2nd Floor"
+    },
+    "loc_dining": {
+      "location_id": "loc_dining",
+      "location_name": "Campus Dining Hall West Entrance"
+    },
+    "loc_eng": {
+      "location_id": "loc_eng",
+      "location_name": "Engineering Hall Room 302"
+    },
+    "loc_sports": {
+      "location_id": "loc_sports",
+      "location_name": "Athletics Complex Bleachers"
+    },
+    "loc_center": {
+      "location_id": "loc_center",
+      "location_name": "Student Center Lounge 1st Floor"
+    },
+    "loc_ntb": {
+      "location_id": "loc_ntb",
+      "location_name": "NTB Building Quad"
+    },
+    "loc_5f8958": {
+      "location_id": "loc_5f8958",
+      "location_name": "Mathematics Hall Room 204"
+    },
+    "loc_cd3107": {
+      "location_id": "loc_cd3107",
+      "location_name": "Main Library 2nd Floor"
+    },
+    "loc_afe13d": {
+      "location_id": "loc_afe13d",
+      "location_name": "lab"
+    },
+    "loc_bcbcf1": {
+      "location_id": "loc_bcbcf1",
+      "location_name": "Gymnasium Locker Room"
+    }
+  },
+  "student": {
+    "std_101": {
+      "student_id": "std_101",
+      "roll_no": "CS202401",
+      "name": "Arth",
+      "email": "arth@campus.edu",
+      "password_hash": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
+      "phone": "555-0101",
+      "department_id": "dept_cs",
+      "department_name": "Computer Science",
+      "created_at": "2026-10-01T09:00:00Z"
+    },
+    "std_102": {
+      "student_id": "std_102",
+      "roll_no": "EC202415",
+      "name": "Shivam",
+      "email": "shivam@campus.edu",
+      "password_hash": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
+      "phone": "555-0102",
+      "department_id": "dept_ec",
+      "department_name": "Electronics & Communication",
+      "created_at": "2026-10-02T10:15:00Z"
+    },
+    "std_103": {
+      "student_id": "std_103",
+      "roll_no": "ME202432",
+      "name": "Marcus Johnson",
+      "email": "marcus.j@campus.edu",
+      "password_hash": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
+      "phone": "555-0103",
+      "department_id": "dept_me",
+      "department_name": "Mechanical Engineering",
+      "created_at": "2026-10-03T11:00:00Z"
+    }
+  },
+  "admin": {
+    "adm_001": {
+      "admin_id": "adm_001",
+      "staff_code": "STAFF-SEC-01",
+      "name": "Hariom Singh",
+      "email": "hariom18august@gmail.com",
+      "password_hash": "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9",
+      "office_location": "Student Activity Center Rm 104",
+      "phone": "555-0199",
+      "created_at": "2026-10-01T08:00:00Z"
+    }
+  },
+  "item": {
+    "item_1": {
+      "item_id": "item_1",
+      "title": "MacBook Air M2 Silver",
+      "item_type": "lost",
+      "category_id": "cat_elec",
+      "category_name": "Electronics",
+      "description": "Silver MacBook Air in a dark grey protective felt sleeve with campus computer club stickers on lid.",
+      "location_id": "loc_lib",
+      "location_name": "Main Campus Library 2nd Floor",
+      "event_date": "2026-10-06",
+      "image_url": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=600&q=80",
+      "status": "approved",
+      "reported_by": "std_101",
+      "student_name": "Arth",
+      "student_email": "arth@campus.edu",
+      "roll_no": "CS202401",
+      "reviewed_by": "adm_001",
+      "created_at": "2026-10-06T14:30:00Z"
+    },
+    "item_2": {
+      "item_id": "item_2",
+      "title": "Brown Leather Bi-fold Wallet",
+      "item_type": "found",
+      "category_id": "cat_belong",
+      "category_name": "Personal Belongings",
+      "description": "Brown leather wallet containing student transit pass and library card. Turned into dining hall counter.",
+      "location_id": "loc_dining",
+      "location_name": "Campus Dining Hall West Entrance",
+      "event_date": "2026-10-07",
+      "image_url": "https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&w=600&q=80",
+      "status": "approved",
+      "reported_by": "std_102",
+      "student_name": "Shivam",
+      "student_email": "shivam@campus.edu",
+      "roll_no": "EC202415",
+      "reviewed_by": "adm_001",
+      "created_at": "2026-10-07T12:00:00Z"
+    },
+    "item_3": {
+      "item_id": "item_3",
+      "title": "TI-84 Plus CE Graphing Calculator",
+      "item_type": "lost",
+      "category_id": "cat_study",
+      "category_name": "Study Materials",
+      "description": "Black TI-84 Plus CE graphing calculator with cobalt blue sliding cover. Initials MJ on battery compartment.",
+      "location_id": "loc_eng",
+      "location_name": "Engineering Hall Room 302",
+      "event_date": "2026-10-08",
+      "image_url": "https://images.unsplash.com/photo-1594980596870-8aa52a78d8cd?auto=format&fit=crop&w=600&q=80",
+      "status": "approved",
+      "reported_by": "std_103",
+      "student_name": "Marcus Johnson",
+      "student_email": "marcus.j@campus.edu",
+      "roll_no": "ME202432",
+      "reviewed_by": "adm_001",
+      "created_at": "2026-10-08T09:15:00Z"
+    },
+    "item_4": {
+      "item_id": "item_4",
+      "title": "Hydro Flask Water Bottle 32oz",
+      "item_type": "found",
+      "category_id": "cat_access",
+      "category_name": "Accessories",
+      "description": "Cobalt blue stainless steel bottle with yellow hiking club sticker on side. Found left on bleachers.",
+      "location_id": "loc_sports",
+      "location_name": "Athletics Complex Bleachers",
+      "event_date": "2026-10-08",
+      "image_url": "https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=600&q=80",
+      "status": "claimed",
+      "reported_by": "std_101",
+      "student_name": "Arth",
+      "student_email": "arth@campus.edu",
+      "roll_no": "CS202401",
+      "reviewed_by": "adm_001",
+      "created_at": "2026-10-08T11:00:00Z"
+    },
+    "item_5": {
+      "item_id": "item_5",
+      "title": "Dell XPS 15 Silver Laptop",
+      "item_type": "lost",
+      "category_id": "cat_elec",
+      "category_name": "Electronics",
+      "description": "Silver Dell laptop with student department sticker on base reported lost near Library.",
+      "location_id": "loc_lib",
+      "location_name": "Main Campus Library 2nd Floor",
+      "event_date": "2026-10-10",
+      "image_url": "https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?auto=format&fit=crop&w=600&q=80",
+      "status": "approved",
+      "reported_by": "std_101",
+      "student_name": "Arth",
+      "student_email": "arth@campus.edu",
+      "roll_no": "CS202401",
+      "reviewed_by": "adm_001",
+      "created_at": "2026-10-10T16:00:00Z"
+    },
+    "item_79fe76eb": {
+      "item_id": "item_79fe76eb",
+      "title": "Test Lost Umbrella",
+      "item_type": "lost",
+      "description": "Black folding umbrella left in lab",
+      "event_date": "2026-10-11",
+      "image_url": "https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?auto=format&fit=crop&w=600&q=80",
+      "status": "approved",
+      "category_id": "cat_access",
+      "location_id": "loc_lib",
+      "reported_by": "std_101",
+      "reviewed_by": "adm_001",
+      "created_at": "2026-10-11T07:16:08.133Z",
+      "category": "Accessories",
+      "location": "Science Lab 101",
+      "student_name": "Arth",
+      "student_email": "arth@campus.edu"
+    },
+    "item_4b3f0e61": {
+      "item_id": "item_4b3f0e61",
+      "title": "Blue Backpack",
+      "item_type": "lost",
+      "description": "Navy blue Jansport backpack with notebook inside",
+      "event_date": "2026-10-11",
+      "image_url": "https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?auto=format&fit=crop&w=600&q=80",
+      "status": "approved",
+      "category_id": "cat_belong",
+      "location_id": "loc_lib",
+      "reported_by": "std_101",
+      "reviewed_by": "adm_001",
+      "created_at": "2026-10-11T07:18:57.326Z",
+      "category": "Personal Belongings",
+      "location": "Main Campus Library 2nd Floor",
+      "student_name": "Arth",
+      "student_email": "arth@campus.edu"
+    },
+    "item_386f3eba": {
+      "id": "item_386f3eba",
+      "item_id": "item_386f3eba",
+      "title": "Silver MacBook Pro 14",
+      "type": "found",
+      "item_type": "found",
+      "description": "Found on 2nd floor library study desk near window. Gray protective case.",
+      "date": "2026-10-11",
+      "event_date": "2026-10-11",
+      "image_url": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=600&q=80",
+      "status": "claimed",
+      "category": "Electronics",
+      "category_name": "Electronics",
+      "category_id": "cat_elec",
+      "location": "Main Campus Library 2nd Floor",
+      "location_name": "Main Campus Library 2nd Floor",
+      "location_id": "loc_lib",
+      "student_id": "std_101",
+      "reported_by": "std_101",
+      "student_name": "Arth",
+      "student_email": "arth@campus.edu",
+      "roll_no": "CS202401",
+      "reviewed_by": "adm_001",
+      "created_at": "2026-10-11T07:28:27.877Z"
+    },
+    "item_ea5356ca": {
+      "id": "item_ea5356ca",
+      "item_id": "item_ea5356ca",
+      "title": "Silver Calculator",
+      "type": "lost",
+      "item_type": "lost",
+      "description": "TI-84 Plus CE silver edition left in Math 204",
+      "date": "2026-10-11",
+      "event_date": "2026-10-11",
+      "image_url": "https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?auto=format&fit=crop&w=600&q=80",
+      "status": "approved",
+      "category": "Electronics",
+      "category_name": "Electronics",
+      "category_id": "cat_elec",
+      "location": "Mathematics Hall Room 204",
+      "location_name": "Mathematics Hall Room 204",
+      "location_id": "loc_5f8958",
+      "student_id": "std_101",
+      "reported_by": "std_101",
+      "student_name": "Arth",
+      "student_email": "arth@campus.edu",
+      "roll_no": "CS202401",
+      "reviewed_by": "adm_001",
+      "created_at": "2026-10-11T09:44:30.661Z"
+    },
+    "item_2c74e248": {
+      "id": "item_2c74e248",
+      "item_id": "item_2c74e248",
+      "title": "Gold Rimmed Reading Glasses",
+      "type": "lost",
+      "item_type": "lost",
+      "description": "Ray-Ban gold wire glasses lost in Library 2nd Floor Study Room",
+      "date": "2026-10-11",
+      "event_date": "2026-10-11",
+      "image_url": "https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?auto=format&fit=crop&w=600&q=80",
+      "status": "approved",
+      "category": "Personal Items",
+      "category_name": "Personal Items",
+      "category_id": "cat_00605e",
+      "location": "Main Library 2nd Floor",
+      "location_name": "Main Library 2nd Floor",
+      "location_id": "loc_cd3107",
+      "student_id": "std_101",
+      "reported_by": "std_101",
+      "student_name": "Arth",
+      "student_email": "arth@campus.edu",
+      "roll_no": "CS202401",
+      "reviewed_by": "adm_001",
+      "created_at": "2026-10-11T10:07:59.459Z"
+    },
+    "item_aac6faad": {
+      "id": "item_aac6faad",
+      "item_id": "item_aac6faad",
+      "title": "pen",
+      "type": "lost",
+      "item_type": "lost",
+      "description": "fdsdgb",
+      "date": "2026-10-11",
+      "event_date": "2026-10-11",
+      "image_url": "https://m.media-amazon.com/images/I/71XwLX0ySeL.jpg",
+      "status": "approved",
+      "category": "Electronics",
+      "category_name": "Electronics",
+      "category_id": "cat_elec",
+      "location": "lab",
+      "location_name": "lab",
+      "location_id": "loc_afe13d",
+      "student_id": "std_101",
+      "reported_by": "std_101",
+      "student_name": "Arth",
+      "student_email": "arth@campus.edu",
+      "roll_no": "CS202401",
+      "reviewed_by": "adm_001",
+      "created_at": "2026-10-11T10:19:32.776Z"
+    },
+    "item_a99c22d6": {
+      "id": "item_a99c22d6",
+      "item_id": "item_a99c22d6",
+      "title": "Black Leather Jacket",
+      "type": "lost",
+      "item_type": "lost",
+      "description": "Lost near gym",
+      "date": "2026-10-11",
+      "event_date": "2026-10-11",
+      "image_url": "https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?auto=format&fit=crop&w=600&q=80",
+      "status": "pending",
+      "category": "Clothing",
+      "category_name": "Clothing",
+      "category_id": "cat_f64ab6",
+      "location": "Gymnasium Locker Room",
+      "location_name": "Gymnasium Locker Room",
+      "location_id": "loc_bcbcf1",
+      "student_id": "std_101",
+      "reported_by": "std_101",
+      "student_name": "Arth",
+      "student_email": "arth@campus.edu",
+      "roll_no": "CS202401",
+      "reviewed_by": null,
+      "created_at": "2026-10-11T10:37:04.501Z"
+    }
+  },
+  "claim": {
+    "claim_1": {
+      "claim_id": "claim_1",
+      "proof_description": "Wallet has my student transit ID ending in 2432 and driver license.",
+      "contact_phone": "555-0103",
+      "status": "pending",
+      "item_id": "item_2",
+      "item_title": "Brown Leather Bi-fold Wallet",
+      "student_id": "std_103",
+      "student_name": "Marcus Johnson",
+      "student_email": "marcus.j@campus.edu",
+      "roll_no": "ME202432",
+      "reviewed_by": null,
+      "created_at": "2026-10-08T14:00:00Z"
+    },
+    "claim_3b4b914f": {
+      "claim_id": "claim_3b4b914f",
+      "proof_description": "The laptop has a green NASA sticker on bottom lid and serial ending in 8892.",
+      "contact_phone": "555-0101",
+      "status": "approved",
+      "item_id": "item_386f3eba",
+      "item_title": "Silver MacBook Pro 14",
+      "student_id": "std_101",
+      "student_name": "Arth",
+      "student_email": "arth@campus.edu",
+      "created_at": "2026-10-11T07:28:27.926Z",
+      "reviewed_by": "adm_001"
+    }
+  },
+  "item_status_log": {
+    "log_item_1_init": {
+      "log_id": "log_item_1_init",
+      "old_status": null,
+      "new_status": "approved",
+      "item_id": "item_1",
+      "changed_at": "2026-10-06T14:30:00Z"
+    },
+    "log_item_2_init": {
+      "log_id": "log_item_2_init",
+      "old_status": null,
+      "new_status": "approved",
+      "item_id": "item_2",
+      "changed_at": "2026-10-07T12:00:00Z"
+    },
+    "log_item_3_init": {
+      "log_id": "log_item_3_init",
+      "old_status": null,
+      "new_status": "approved",
+      "item_id": "item_3",
+      "changed_at": "2026-10-08T09:15:00Z"
+    },
+    "log_item_4_init": {
+      "log_id": "log_item_4_init",
+      "old_status": "approved",
+      "new_status": "claimed",
+      "item_id": "item_4",
+      "changed_at": "2026-10-08T16:00:00Z"
+    },
+    "log_item_5_init": {
+      "log_id": "log_item_5_init",
+      "old_status": null,
+      "new_status": "pending",
+      "item_id": "item_5",
+      "changed_at": "2026-10-10T16:00:00Z"
+    },
+    "log_item_5_1791701625899": {
+      "log_id": "log_item_5_1791701625899",
+      "old_status": "pending",
+      "new_status": "approved",
+      "item_id": "item_5",
+      "changed_at": "2026-10-11T06:53:45.899Z"
+    },
+    "log_item_79fe76eb_init": {
+      "log_id": "log_item_79fe76eb_init",
+      "old_status": null,
+      "new_status": "pending",
+      "item_id": "item_79fe76eb",
+      "changed_at": "2026-10-11T07:16:08.133Z"
+    },
+    "log_item_79fe76eb_1791702968191": {
+      "log_id": "log_item_79fe76eb_1791702968191",
+      "old_status": "pending",
+      "new_status": "approved",
+      "item_id": "item_79fe76eb",
+      "changed_at": "2026-10-11T07:16:08.191Z"
+    },
+    "log_item_4b3f0e61_init": {
+      "log_id": "log_item_4b3f0e61_init",
+      "old_status": null,
+      "new_status": "pending",
+      "item_id": "item_4b3f0e61",
+      "changed_at": "2026-10-11T07:18:57.326Z"
+    },
+    "log_item_4b3f0e61_1791703137345": {
+      "log_id": "log_item_4b3f0e61_1791703137345",
+      "old_status": "pending",
+      "new_status": "approved",
+      "item_id": "item_4b3f0e61",
+      "changed_at": "2026-10-11T07:18:57.345Z"
+    },
+    "log_item_386f3eba_init": {
+      "log_id": "log_item_386f3eba_init",
+      "old_status": null,
+      "new_status": "pending",
+      "item_id": "item_386f3eba",
+      "changed_at": "2026-10-11T07:28:27.877Z"
+    },
+    "log_item_386f3eba_1791703707915": {
+      "log_id": "log_item_386f3eba_1791703707915",
+      "old_status": "pending",
+      "new_status": "approved",
+      "item_id": "item_386f3eba",
+      "changed_at": "2026-10-11T07:28:27.915Z"
+    },
+    "log_item_386f3eba_1791703707939": {
+      "log_id": "log_item_386f3eba_1791703707939",
+      "old_status": "approved",
+      "new_status": "claimed",
+      "item_id": "item_386f3eba",
+      "changed_at": "2026-10-11T07:28:27.939Z"
+    },
+    "log_item_ea5356ca_init": {
+      "log_id": "log_item_ea5356ca_init",
+      "old_status": null,
+      "new_status": "pending",
+      "item_id": "item_ea5356ca",
+      "changed_at": "2026-10-11T09:44:30.661Z"
+    },
+    "log_item_ea5356ca_1791711870673": {
+      "log_id": "log_item_ea5356ca_1791711870673",
+      "old_status": "pending",
+      "new_status": "approved",
+      "item_id": "item_ea5356ca",
+      "changed_at": "2026-10-11T09:44:30.673Z"
+    },
+    "log_item_2c74e248_init": {
+      "log_id": "log_item_2c74e248_init",
+      "old_status": null,
+      "new_status": "pending",
+      "item_id": "item_2c74e248",
+      "changed_at": "2026-10-11T10:07:59.459Z"
+    },
+    "log_item_2c74e248_1791713279837": {
+      "log_id": "log_item_2c74e248_1791713279837",
+      "old_status": "pending",
+      "new_status": "approved",
+      "item_id": "item_2c74e248",
+      "changed_at": "2026-10-11T10:07:59.837Z"
+    },
+    "log_item_aac6faad_init": {
+      "log_id": "log_item_aac6faad_init",
+      "old_status": null,
+      "new_status": "pending",
+      "item_id": "item_aac6faad",
+      "changed_at": "2026-10-11T10:19:32.776Z"
+    },
+    "log_item_aac6faad_1791714003858": {
+      "log_id": "log_item_aac6faad_1791714003858",
+      "old_status": "pending",
+      "new_status": "approved",
+      "item_id": "item_aac6faad",
+      "changed_at": "2026-10-11T10:20:03.858Z"
+    },
+    "log_item_a99c22d6_init": {
+      "log_id": "log_item_a99c22d6_init",
+      "old_status": null,
+      "new_status": "pending",
+      "item_id": "item_a99c22d6",
+      "changed_at": "2026-10-11T10:37:04.501Z"
+    }
+  }
+}

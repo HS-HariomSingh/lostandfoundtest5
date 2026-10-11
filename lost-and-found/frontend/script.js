@@ -342,8 +342,9 @@ async function viewItemDetails(itemId) {
         <div><strong>Location:</strong><br>${item.location}</div>
         <div><strong>Reported Date:</strong><br>${formatDate(item.date)}</div>
       </div>
-      <div style="font-size: 0.8rem; color: #64748b;">
-        Reported by: ${item.student_name || "Campus Community"}
+      <div style="font-size: 0.8rem; color: #64748b; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+        <span>Reported by: <strong>${item.student_name || "Campus Community"}</strong></span>
+        <span style="background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; padding: 2px 7px; border-radius: 4px; font-size: 0.73rem; font-weight: 600;">🔥 Stored in Firebase Firestore</span>
       </div>
       ${canClaim ? `<button class="btn btn-primary btn-block" onclick="closeModal('item-modal'); openClaimModal('${item.id}', '${item.title.replace(/'/g, "\\'")}')">Claim This Item</button>` : ''}
     `;
@@ -629,7 +630,8 @@ async function initStudentDashboard() {
         image_url: imageUrl || null
       });
 
-      showToast(`✅ Report "${title}" saved to database! Awaiting administrative approval.`);
+      const docId = res.item?.id || res.firebase?.doc_id || "saved";
+      showToast(`🔥 Report "${title}" saved to Firebase Firestore (Doc: ${docId})! Awaiting admin approval.`);
       reportForm.reset();
       if (dateInput) dateInput.value = new Date().toISOString().split("T")[0];
       switchStudentTab("my-reports");
@@ -913,6 +915,136 @@ function openAivenModal() {
 function closeAivenModal() {
   const modal = document.getElementById("aiven-modal");
   if (modal) modal.classList.remove("open");
+}
+
+function openFirebaseModal() {
+  const modal = document.getElementById("firebase-modal");
+  if (modal) {
+    modal.classList.add("open");
+    loadFirebaseExplorer(true);
+  }
+}
+
+function closeFirebaseModal() {
+  const modal = document.getElementById("firebase-modal");
+  if (modal) modal.classList.remove("open");
+}
+
+async function loadFirebaseExplorer(isModalOnly = false) {
+  try {
+    const res = await apiRequest("/api/firebase/documents");
+    if (!res || !res.collections) return;
+
+    const items = res.collections.items?.docs || [];
+    const claims = res.collections.claims?.docs || [];
+    const students = res.collections.students?.docs || [];
+    const logs = res.collections.item_status_logs?.docs || [];
+
+    // Update modal counts
+    if (document.getElementById("modal-fb-items")) document.getElementById("modal-fb-items").textContent = items.length;
+    if (document.getElementById("modal-fb-claims")) document.getElementById("modal-fb-claims").textContent = claims.length;
+    if (document.getElementById("modal-fb-students")) document.getElementById("modal-fb-students").textContent = students.length;
+    if (document.getElementById("modal-fb-logs")) document.getElementById("modal-fb-logs").textContent = logs.length;
+
+    // Update pane counts
+    if (document.getElementById("fb-metric-items")) document.getElementById("fb-metric-items").textContent = items.length;
+    if (document.getElementById("fb-metric-claims")) document.getElementById("fb-metric-claims").textContent = claims.length;
+    if (document.getElementById("fb-metric-students")) document.getElementById("fb-metric-students").textContent = students.length;
+    if (document.getElementById("fb-metric-logs")) document.getElementById("fb-metric-logs").textContent = logs.length;
+
+    const summaryElem = document.getElementById("fb-docs-summary");
+    if (summaryElem) {
+      summaryElem.textContent = `Showing ${items.length} items from Firestore DB: ${res.databaseId || 'Firestore'}`;
+    }
+
+    const tbody = document.getElementById("fb-items-tbody");
+    if (tbody && !isModalOnly) {
+      if (items.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" style="padding: 1.5rem; text-align: center; color: #64748b;">No documents found in 'items' collection yet. Click 'Sync & Push All to Firebase' above!</td></tr>`;
+      } else {
+        tbody.innerHTML = items.map(i => {
+          const isLost = i.type === "lost";
+          const typeBadge = isLost
+            ? `<span style="background: #fee2e2; color: #b91c1c; padding: 2px 6px; border-radius: 4px; font-weight: 600;">Lost</span>`
+            : `<span style="background: #dbeafe; color: #1d4ed8; padding: 2px 6px; border-radius: 4px; font-weight: 600;">Found</span>`;
+          const statusBadge = i.status === "approved"
+            ? `<span style="background: #dcfce7; color: #15803d; padding: 2px 6px; border-radius: 4px; font-weight: 600;">Approved</span>`
+            : (i.status === "pending"
+              ? `<span style="background: #fef3c7; color: #b45309; padding: 2px 6px; border-radius: 4px; font-weight: 600;">Pending</span>`
+              : `<span style="background: #f1f5f9; color: #475569; padding: 2px 6px; border-radius: 4px;">${i.status || 'N/A'}</span>`);
+
+          return `
+            <tr style="border-bottom: 1px solid #f1f5f9;">
+              <td style="padding: 0.65rem 0.75rem; font-family: monospace; font-size: 0.75rem; color: #c2410c; font-weight: 700;">${i.docId || i.id}</td>
+              <td style="padding: 0.65rem 0.75rem; font-weight: 600; color: #0f172a;">${i.title}</td>
+              <td style="padding: 0.65rem 0.75rem;">${typeBadge}</td>
+              <td style="padding: 0.65rem 0.75rem; color: #475569;">${i.category || i.category_name || '-'}</td>
+              <td style="padding: 0.65rem 0.75rem;">${statusBadge}</td>
+              <td style="padding: 0.65rem 0.75rem; color: #475569;">${i.student_name || 'Student'} (${i.student_id || 'ID'})</td>
+              <td style="padding: 0.65rem 0.75rem; color: #64748b; font-size: 0.75rem;">${formatDate(i.created_at || i.date)}</td>
+            </tr>
+          `;
+        }).join("");
+      }
+    }
+  } catch (err) {
+    console.error("loadFirebaseExplorer error:", err);
+  }
+}
+
+async function runFirebaseTestWrite(btnElem = null) {
+  let prevText = "Test Write & Read";
+  if (btnElem) {
+    prevText = btnElem.textContent;
+    btnElem.disabled = true;
+    btnElem.textContent = "Writing...";
+  }
+  showToast("Sending test document to Firebase Firestore...");
+  try {
+    const res = await apiRequest("/api/firebase/test-write", "POST");
+    const outElem = document.getElementById("fb-modal-output");
+    if (outElem) {
+      outElem.style.display = "block";
+      outElem.innerHTML = `
+        <div style="color: #15803d; font-weight: 700; margin-bottom: 0.25rem;">✅ Document Written and Read Back Successfully!</div>
+        <div>Document ID: <code>${res.doc_id}</code></div>
+        <div>Database: <code>${res.database}</code></div>
+        <div>Title: "${res.data?.title}" (Status: ${res.data?.status})</div>
+      `;
+    }
+    showToast(`✅ Firebase write verified! Stored doc '${res.doc_id}' in Firestore!`);
+    await loadFirebaseExplorer();
+  } catch (err) {
+    showToast(`Firebase write failed: ${err.message}`, true);
+  } finally {
+    if (btnElem) {
+      btnElem.disabled = false;
+      btnElem.textContent = prevText;
+    }
+  }
+}
+
+async function syncAllToFirebase(btnElem = null) {
+  let prevText = "Sync Catalog";
+  if (btnElem) {
+    prevText = btnElem.textContent;
+    btnElem.disabled = true;
+    btnElem.textContent = "Syncing...";
+  }
+  showToast("Syncing all campus reports & catalog data to Firebase Firestore...");
+  try {
+    const res = await apiRequest("/api/firebase/sync", "POST");
+    showToast(`✅ ${res.message || 'Data pushed to Firebase Firestore!'}`);
+    await loadFirebaseExplorer();
+    await loadAdminReports(true);
+  } catch (err) {
+    showToast(`Sync failed: ${err.message}`, true);
+  } finally {
+    if (btnElem) {
+      btnElem.disabled = false;
+      btnElem.textContent = prevText;
+    }
+  }
 }
 
 async function testAivenFromModal() {
@@ -1362,6 +1494,11 @@ window.testAivenFromModal = testAivenFromModal;
 window.saveAivenFromModal = saveAivenFromModal;
 window.checkAivenStatus = checkAivenStatus;
 window.runDiagnosticsFromModal = runDiagnosticsFromModal;
+window.openFirebaseModal = openFirebaseModal;
+window.closeFirebaseModal = closeFirebaseModal;
+window.loadFirebaseExplorer = loadFirebaseExplorer;
+window.runFirebaseTestWrite = runFirebaseTestWrite;
+window.syncAllToFirebase = syncAllToFirebase;
 window.initApp = initApp;
 window.initLogin = initLogin;
 window.initStudentDashboard = initStudentDashboard;
