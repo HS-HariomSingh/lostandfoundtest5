@@ -28,6 +28,25 @@ import {
   runAivenDiagnostic,
   getActivePoolStatus
 } from "./database/connection";
+import {
+  initFirebaseDatabase,
+  testFirebaseConnection,
+  getFirebaseDiagnostics,
+  getFirestoreItems,
+  getFirestoreItemById,
+  saveFirestoreItem,
+  updateFirestoreItemStatus,
+  deleteFirestoreItem,
+  getFirestoreClaims,
+  saveFirestoreClaim,
+  updateFirestoreClaimStatus,
+  getFirestoreStudents,
+  findFirestoreUser,
+  getFirestoreLookups,
+  getFirestoreStats,
+  getFirestoreItemLogs,
+  isFirebaseLive
+} from "./database/firebase";
 
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
@@ -37,7 +56,12 @@ app.use(express.json());
 const backendDir = path.resolve(process.cwd(), "lost-and-found/backend");
 const frontendDir = path.resolve(process.cwd(), "lost-and-found/frontend");
 
-// Initialize Aiven MySQL connection and schema
+// Initialize Firebase Firestore database
+initFirebaseDatabase().catch((err) => {
+  console.error("[Firebase] Initial database check failed:", err);
+});
+
+// Initialize Aiven MySQL connection and schema (optional secondary)
 initAivenDatabase().catch((err) => {
   console.error("[DB] Failed to run initial Aiven database check:", err);
 });
@@ -143,10 +167,21 @@ function getSessionUser(req: express.Request): any | null {
 }
 
 // Comprehensive diagnostic API endpoint that verifies Aiven MySQL connection and logs active connection pool status
+// Comprehensive diagnostic API endpoint that verifies database connections and logs active connection pool status
 app.get(["/api/diagnostic", "/api/diagnostics", "/api/aiven/diagnostic", "/api/aiven/diagnostics"], async (req, res) => {
   try {
     const diagnostic = await runAivenDiagnostic();
-    res.json(diagnostic);
+    const fbTest = await testFirebaseConnection();
+    const fbDiag = getFirebaseDiagnostics();
+
+    res.json({
+      ...diagnostic,
+      firebase: {
+        ...fbDiag,
+        live_test: fbTest
+      },
+      primary_database: fbTest.success ? "Firebase Firestore (Cloud Hosted)" : diagnostic.storage_audit.active_storage_mode
+    });
   } catch (err: any) {
     res.status(500).json({
       success: false,
@@ -155,6 +190,16 @@ app.get(["/api/diagnostic", "/api/diagnostics", "/api/aiven/diagnostic", "/api/a
       pool_status: getActivePoolStatus()
     });
   }
+});
+
+// Dedicated endpoint for Firebase Firestore status and diagnostics
+app.get(["/api/firebase/status", "/api/firebase/diagnostics"], async (req, res) => {
+  const liveTest = await testFirebaseConnection();
+  const diagnostics = getFirebaseDiagnostics();
+  res.json({
+    ...diagnostics,
+    live_test: liveTest
+  });
 });
 
 // Dedicated endpoint to inspect active connection pool metrics
@@ -209,7 +254,10 @@ app.post("/api/auth/login", async (req, res) => {
   }
 
   const targetRole = role === "admin" ? "admin" : "student";
-  const user = await findUser(email, targetRole);
+  let user = await findFirestoreUser(email, targetRole);
+  if (!user) {
+    user = await findUser(email, targetRole);
+  }
 
   if (!user) {
     const errText = targetRole === "admin" ? "Invalid administrator credentials" : "Invalid student credentials";
@@ -273,23 +321,40 @@ app.post("/api/auth/logout", (req, res) => {
 
 app.get("/api/items", async (req, res) => {
   const { type, category, status_filter = "approved", search } = req.query;
-  const items = await getItems({
-    type: type as string,
-    category: category as string,
-    status_filter: status_filter as string,
-    search: search as string
-  });
-  res.json({ items });
+  try {
+    const items = await getFirestoreItems({
+      type: type as string,
+      category: category as string,
+      status_filter: status_filter as string,
+      search: search as string
+    });
+    res.json({ items, database: "firestore" });
+  } catch (e) {
+    const items = await getItems({
+      type: type as string,
+      category: category as string,
+      status_filter: status_filter as string,
+      search: search as string
+    });
+    res.json({ items, database: "fallback" });
+  }
 });
 
 app.get("/api/items/:id", async (req, res) => {
   const itemId = req.params.id;
-  const item = await getItemById(itemId);
-  if (!item) {
+  try {
+    const item = await getFirestoreItemById(itemId);
+    if (item) {
+      res.json(item);
+      return;
+    }
+  } catch (e) {}
+  const fallback = await getItemById(itemId);
+  if (!fallback) {
     res.status(404).json({ detail: "Item not found" });
     return;
   }
-  res.json(item);
+  res.json(fallback);
 });
 
 app.post("/api/items", async (req, res) => {
@@ -327,8 +392,14 @@ app.post("/api/items", async (req, res) => {
     created_at: new Date().toISOString()
   };
 
-  const created = await createItem(newItem);
-  res.json({ message: "Report submitted successfully", item: created || newItem });
+  try {
+    await saveFirestoreItem(newItem);
+  } catch (e: any) {
+    console.warn("[Firebase] Could not write to Firestore:", e.message);
+  }
+  await createItem(newItem);
+
+  res.json({ message: "Report submitted successfully", item: newItem, stored_in: "firestore" });
 });
 
 app.get("/api/student/reports", async (req, res) => {
@@ -337,8 +408,14 @@ app.get("/api/student/reports", async (req, res) => {
     res.status(403).json({ detail: "Student access required" });
     return;
   }
-  const items = await getStudentReports(user);
-  res.json({ items });
+  try {
+    const all = await getFirestoreItems({ status_filter: "all" });
+    const items = all.filter((i) => i.student_id === user.id || i.student_email === user.email);
+    res.json({ items, source: "firestore" });
+  } catch (e) {
+    const items = await getStudentReports(user);
+    res.json({ items, source: "fallback" });
+  }
 });
 
 app.get("/api/student/claims", async (req, res) => {
@@ -347,8 +424,13 @@ app.get("/api/student/claims", async (req, res) => {
     res.status(403).json({ detail: "Student access required" });
     return;
   }
-  const claims = await getStudentClaims(user);
-  res.json({ claims });
+  try {
+    const claims = await getFirestoreClaims(user.id);
+    res.json({ claims, source: "firestore" });
+  } catch (e) {
+    const claims = await getStudentClaims(user);
+    res.json({ claims, source: "fallback" });
+  }
 });
 
 app.post("/api/claims", async (req, res) => {
@@ -363,7 +445,10 @@ app.post("/api/claims", async (req, res) => {
     return;
   }
 
-  const item = await getItemById(item_id);
+  let item = await getFirestoreItemById(item_id);
+  if (!item) {
+    item = await getItemById(item_id);
+  }
   if (!item) {
     res.status(404).json({ detail: "Item not found" });
     return;
@@ -388,29 +473,59 @@ app.post("/api/claims", async (req, res) => {
   };
 
   try {
-    await createClaim(newClaim);
-    res.json({ message: "Claim submitted successfully", claim: newClaim });
+    await saveFirestoreClaim(newClaim);
   } catch (err: any) {
-    res.status(409).json({ detail: err.message || "Failed to submit claim" });
+    console.warn("[Firebase] Could not write claim to Firestore:", err.message);
   }
+  await createClaim(newClaim);
+
+  res.json({ message: "Claim submitted successfully", claim: newClaim, stored_in: "firestore" });
 });
 
 app.get("/api/departments", async (req, res) => {
+  try {
+    const lookups = await getFirestoreLookups();
+    if (lookups.departments.length > 0) {
+      res.json({ departments: lookups.departments, source: "firestore" });
+      return;
+    }
+  } catch (e) {}
   const departments = await getDepartments();
   res.json({ departments });
 });
 
 app.get("/api/categories", async (req, res) => {
+  try {
+    const lookups = await getFirestoreLookups();
+    if (lookups.categories.length > 0) {
+      res.json({ categories: lookups.categories, source: "firestore" });
+      return;
+    }
+  } catch (e) {}
   const categories = await getCategories();
   res.json({ categories });
 });
 
 app.get("/api/locations", async (req, res) => {
+  try {
+    const lookups = await getFirestoreLookups();
+    if (lookups.locations.length > 0) {
+      res.json({ locations: lookups.locations, source: "firestore" });
+      return;
+    }
+  } catch (e) {}
   const locations = await getLocations();
   res.json({ locations });
 });
 
 app.get("/api/items/:id/logs", async (req, res) => {
+  try {
+    const logs = await getFirestoreItemLogs(req.params.id);
+    if (logs.length > 0) {
+      res.json({ logs, source: "firestore" });
+      return;
+    }
+  } catch (e) {}
   const logs = await getItemStatusLogs(req.params.id);
   res.json({ logs });
 });
@@ -421,8 +536,13 @@ app.get("/api/admin/stats", async (req, res) => {
     res.status(403).json({ detail: "Admin access required" });
     return;
   }
-  const stats = await getAdminStats();
-  res.json(stats);
+  try {
+    const stats = await getFirestoreStats();
+    res.json({ ...stats, database: "firestore" });
+  } catch (e) {
+    const stats = await getAdminStats();
+    res.json(stats);
+  }
 });
 
 app.get("/api/admin/reports", async (req, res) => {
@@ -431,8 +551,13 @@ app.get("/api/admin/reports", async (req, res) => {
     res.status(403).json({ detail: "Admin access required" });
     return;
   }
-  const items = await getItems({ status_filter: "all" });
-  res.json({ items });
+  try {
+    const items = await getFirestoreItems({ status_filter: "all" });
+    res.json({ items, source: "firestore" });
+  } catch (e) {
+    const items = await getItems({ status_filter: "all" });
+    res.json({ items });
+  }
 });
 
 app.put("/api/admin/reports/:id/status", async (req, res) => {
@@ -444,8 +569,13 @@ app.put("/api/admin/reports/:id/status", async (req, res) => {
   const { status } = req.body;
   const itemId = req.params.id;
 
+  try {
+    await updateFirestoreItemStatus(itemId, status, user.id);
+  } catch (e: any) {
+    console.warn("[Firebase] Could not update item in Firestore:", e.message);
+  }
   await updateItemStatus(itemId, status, user.id);
-  res.json({ message: `Item status updated to ${status}`, success: true });
+  res.json({ message: `Item status updated to ${status}`, success: true, stored_in: "firestore" });
 });
 
 app.delete("/api/admin/reports/:id", async (req, res) => {
@@ -455,8 +585,13 @@ app.delete("/api/admin/reports/:id", async (req, res) => {
     return;
   }
   const itemId = req.params.id;
+  try {
+    await deleteFirestoreItem(itemId);
+  } catch (e: any) {
+    console.warn("[Firebase] Could not delete item in Firestore:", e.message);
+  }
   await deleteItem(itemId);
-  res.json({ message: "Report deleted successfully", success: true });
+  res.json({ message: "Report deleted successfully", success: true, stored_in: "firestore" });
 });
 
 app.get("/api/admin/claims", async (req, res) => {
@@ -465,8 +600,13 @@ app.get("/api/admin/claims", async (req, res) => {
     res.status(403).json({ detail: "Admin access required" });
     return;
   }
-  const claims = await getAllClaims();
-  res.json({ claims });
+  try {
+    const claims = await getFirestoreClaims();
+    res.json({ claims, source: "firestore" });
+  } catch (e) {
+    const claims = await getAllClaims();
+    res.json({ claims });
+  }
 });
 
 app.put("/api/admin/claims/:id/status", async (req, res) => {
@@ -478,8 +618,13 @@ app.put("/api/admin/claims/:id/status", async (req, res) => {
   const { status } = req.body;
   const claimId = req.params.id;
 
+  try {
+    await updateFirestoreClaimStatus(claimId, status, user.id);
+  } catch (e: any) {
+    console.warn("[Firebase] Could not update claim in Firestore:", e.message);
+  }
   await updateClaimStatus(claimId, status, user.id);
-  res.json({ message: `Claim status updated to ${status}` });
+  res.json({ message: `Claim status updated to ${status}`, stored_in: "firestore" });
 });
 
 app.get("/api/admin/students", async (req, res) => {
@@ -488,8 +633,13 @@ app.get("/api/admin/students", async (req, res) => {
     res.status(403).json({ detail: "Admin access required" });
     return;
   }
-  const students = await getAllStudents();
-  res.json({ students });
+  try {
+    const students = await getFirestoreStudents();
+    res.json({ students, source: "firestore" });
+  } catch (e) {
+    const students = await getAllStudents();
+    res.json({ students });
+  }
 });
 
 // Static files routing

@@ -1,0 +1,156 @@
+{
+  "entities": {
+    "Item": {
+      "title": "Item",
+      "description": "Reported lost or found campus item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Unique identifier of the item" },
+        "title": { "type": "string", "description": "Item title" },
+        "type": { "type": "string", "enum": ["lost", "found"], "description": "Item report type" },
+        "category": { "type": "string", "description": "Category name" },
+        "category_id": { "type": "string", "description": "Category identifier" },
+        "description": { "type": "string", "description": "Detailed item description" },
+        "location": { "type": "string", "description": "Location description" },
+        "location_id": { "type": "string", "description": "Location identifier" },
+        "date": { "type": "string", "description": "Event date (YYYY-MM-DD)" },
+        "image_url": { "type": "string", "description": "Item photo URL" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected", "resolved"], "description": "Review status" },
+        "student_id": { "type": "string", "description": "Reporting student ID" },
+        "student_name": { "type": "string", "description": "Reporting student full name" },
+        "student_email": { "type": "string", "description": "Reporting student email" },
+        "roll_no": { "type": "string", "description": "Student roll number" },
+        "created_at": { "type": "string", "description": "Creation ISO timestamp" }
+      },
+      "required": ["id", "title", "type", "description", "location", "date", "status"]
+    },
+    "Claim": {
+      "title": "Claim",
+      "description": "Ownership claim filed by a student for a found item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Claim unique identifier" },
+        "item_id": { "type": "string", "description": "Referenced item identifier" },
+        "item_title": { "type": "string", "description": "Referenced item title" },
+        "student_id": { "type": "string", "description": "Claimant student ID" },
+        "student_name": { "type": "string", "description": "Claimant student full name" },
+        "student_email": { "type": "string", "description": "Claimant student email" },
+        "proof_description": { "type": "string", "description": "Proof of ownership description" },
+        "contact_phone": { "type": "string", "description": "Claimant contact telephone" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"], "description": "Claim review status" },
+        "created_at": { "type": "string", "description": "Creation ISO timestamp" }
+      },
+      "required": ["id", "item_id", "student_id", "proof_description", "status"]
+    },
+    "Student": {
+      "title": "Student",
+      "description": "Registered campus student user",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Student user ID" },
+        "student_id": { "type": "string", "description": "Campus roll/student number" },
+        "roll_no": { "type": "string", "description": "Student roll number" },
+        "name": { "type": "string", "description": "Student full name" },
+        "email": { "type": "string", "description": "Campus email address" },
+        "department": { "type": "string", "description": "Academic department" },
+        "phone": { "type": "string", "description": "Phone number" },
+        "password_hash": { "type": "string", "description": "Password hash" },
+        "created_at": { "type": "string", "description": "Registration timestamp" }
+      },
+      "required": ["id", "email", "name"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "Campus lost and found staff administrator",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Admin ID" },
+        "staff_code": { "type": "string", "description": "Campus staff code" },
+        "name": { "type": "string", "description": "Admin full name" },
+        "email": { "type": "string", "description": "Admin email" },
+        "office_location": { "type": "string", "description": "Security office location" },
+        "phone": { "type": "string", "description": "Office phone" },
+        "password_hash": { "type": "string", "description": "Password hash" }
+      },
+      "required": ["id", "email", "name"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Item categorization classification",
+      "type": "object",
+      "properties": {
+        "category_id": { "type": "string", "description": "Category ID" },
+        "category_name": { "type": "string", "description": "Category display name" }
+      },
+      "required": ["category_id", "category_name"]
+    },
+    "Location": {
+      "title": "Location",
+      "description": "Campus location spot",
+      "type": "object",
+      "properties": {
+        "location_id": { "type": "string", "description": "Location ID" },
+        "location_name": { "type": "string", "description": "Location display name" }
+      },
+      "required": ["location_id", "location_name"]
+    },
+    "Department": {
+      "title": "Department",
+      "description": "Academic department",
+      "type": "object",
+      "properties": {
+        "department_id": { "type": "string", "description": "Department ID" },
+        "department_name": { "type": "string", "description": "Department display name" }
+      },
+      "required": ["department_id", "department_name"]
+    },
+    "ItemStatusLog": {
+      "title": "ItemStatusLog",
+      "description": "Audit log of item status transitions",
+      "type": "object",
+      "properties": {
+        "log_id": { "type": "string", "description": "Log entry identifier" },
+        "item_id": { "type": "string", "description": "Referenced item identifier" },
+        "old_status": { "type": "string", "description": "Previous status" },
+        "new_status": { "type": "string", "description": "New updated status" },
+        "changed_by": { "type": "string", "description": "Admin or actor identifier" },
+        "changed_at": { "type": "string", "description": "Timestamp of transition" }
+      },
+      "required": ["log_id", "item_id", "new_status"]
+    }
+  },
+  "firestore": {
+    "/items/{itemId}": {
+      "schema": "Item",
+      "description": "Collection of lost and found item reports"
+    },
+    "/claims/{claimId}": {
+      "schema": "Claim",
+      "description": "Collection of student ownership claims"
+    },
+    "/students/{studentId}": {
+      "schema": "Student",
+      "description": "Collection of registered student user profiles"
+    },
+    "/admins/{adminId}": {
+      "schema": "Admin",
+      "description": "Collection of campus administrators"
+    },
+    "/categories/{categoryId}": {
+      "schema": "Category",
+      "description": "Lookup collection for item categories"
+    },
+    "/locations/{locationId}": {
+      "schema": "Location",
+      "description": "Lookup collection for campus buildings and locations"
+    },
+    "/departments/{departmentId}": {
+      "schema": "Department",
+      "description": "Lookup collection for campus academic departments"
+    },
+    "/item_status_logs/{logId}": {
+      "schema": "ItemStatusLog",
+      "description": "Audit trail log collection for item review status changes"
+    }
+  }
+}
