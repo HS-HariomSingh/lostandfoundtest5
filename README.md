@@ -107,8 +107,7 @@ cd lost-and-found
 cd backend
 pip install -r requirements.txt
 ```
-
-
+### Step 3: Run the Backend Server
 
 ```bash
 cd backend
@@ -117,7 +116,7 @@ uvicorn main:app --reload --port 8000
 
 The API documentation will be available at `http://localhost:8000/docs`.
 
-### Step 5: Open the Frontend
+### Step 4: Open the Frontend
 
 You can view the frontend by opening `frontend/index.html` directly in any web browser, or via any static file server:
 

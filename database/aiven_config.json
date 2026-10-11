@@ -1,0 +1,20 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Aiven MySQL Service Configuration",
+  "service_type": "mysql",
+  "connection": {
+    "host": "mysql-9ff1e25-hariom18august-b043.g.aivencloud.com",
+    "port": 14526,
+    "user": "avnadmin",
+    "database": "defaultdb",
+    "ssl_mode": "REQUIRED",
+    "status": "CONNECTED"
+  },
+  "tables": [
+    "students",
+    "admins",
+    "items",
+    "item_claims"
+  ],
+  "schema_file": "database/schema.sql"
+}
