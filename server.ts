@@ -24,7 +24,9 @@ import {
   getDepartments,
   getCategories,
   getLocations,
-  getItemStatusLogs
+  getItemStatusLogs,
+  runAivenDiagnostic,
+  getActivePoolStatus
 } from "./database/connection";
 
 const app = express();
@@ -140,13 +142,45 @@ function getSessionUser(req: express.Request): any | null {
   return null;
 }
 
-// Diagnostics route for Aiven Cloud MySQL connection
+// Comprehensive diagnostic API endpoint that verifies Aiven MySQL connection and logs active connection pool status
+app.get(["/api/diagnostic", "/api/diagnostics", "/api/aiven/diagnostic", "/api/aiven/diagnostics"], async (req, res) => {
+  try {
+    const diagnostic = await runAivenDiagnostic();
+    res.json(diagnostic);
+  } catch (err: any) {
+    res.status(500).json({
+      success: false,
+      status: "error",
+      message: err.message || "Failed to execute diagnostic routine",
+      pool_status: getActivePoolStatus()
+    });
+  }
+});
+
+// Dedicated endpoint to inspect active connection pool metrics
+app.get("/api/aiven/pool", (req, res) => {
+  const poolStatus = getActivePoolStatus();
+  console.log('[DB Pool Status Request]:', poolStatus);
+  res.json({
+    pool_status: poolStatus,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Diagnostics route for Aiven Cloud MySQL connection (backward compatible + enriched)
 app.get("/api/aiven/status", async (req, res) => {
-  const liveTest = await testAivenConnection(true);
+  const diagnostic = await runAivenDiagnostic();
   const diagnostics = getAivenDiagnostics();
   res.json({
     ...diagnostics,
-    live_test: liveTest
+    pool_status: diagnostic.active_connection_pool,
+    diagnostic: diagnostic,
+    live_test: {
+      success: diagnostic.connection.verified,
+      message: diagnostic.connection.diagnostic_summary,
+      host: diagnostic.connection.host,
+      port: diagnostic.connection.port
+    }
   });
 });
 

@@ -805,7 +805,16 @@ async function checkAivenStatus(showToastMsg = false) {
 function renderAivenStatusBanner(res) {
   const banner = document.getElementById("modal-aiven-status-banner");
   if (!banner || !res) return;
-  const isLive = res.connected || res.live_test?.success;
+  const isLive = res.connected || res.live_test?.success || res.success;
+
+  const pool = res.pool_status || res.active_connection_pool || res.diagnostic?.active_connection_pool;
+  if (pool) {
+    if (document.getElementById("metric-active-conn")) document.getElementById("metric-active-conn").textContent = pool.active_connections ?? 0;
+    if (document.getElementById("metric-idle-conn")) document.getElementById("metric-idle-conn").textContent = pool.idle_connections ?? 0;
+    if (document.getElementById("metric-queued")) document.getElementById("metric-queued").textContent = pool.queued_requests ?? 0;
+    if (document.getElementById("metric-limit")) document.getElementById("metric-limit").textContent = pool.connection_limit ?? 5;
+  }
+
   if (isLive) {
     banner.style.background = "#ecfdf5";
     banner.style.color = "#065f46";
@@ -814,8 +823,8 @@ function renderAivenStatusBanner(res) {
       <div style="font-size: 1.2rem;">✅</div>
       <div>
         <strong>Aiven MySQL Cloud is LIVE & Connected</strong><br>
-        Host: <code>${res.host}:${res.port}</code> | DB: <code>${res.database}</code> | User: <code>${res.user}</code><br>
-        <span style="font-size: 0.78rem; opacity: 0.9;">MySQL Server Version: ${res.live_test?.version || "Active"} | SSL: Required</span>
+        Host: <code>${res.host || res.connection?.host}:${res.port || res.connection?.port}</code> | DB: <code>${res.database || res.connection?.database}</code> | User: <code>${res.user || res.connection?.user}</code><br>
+        <span style="font-size: 0.78rem; opacity: 0.9;">MySQL Server: ${res.live_test?.version || res.server_metrics?.version || "Active"} | SSL: Required</span>
       </div>
     `;
   } else {
@@ -825,13 +834,64 @@ function renderAivenStatusBanner(res) {
     banner.innerHTML = `
       <div style="font-size: 1.2rem;">⚠️</div>
       <div>
-        <strong>Aiven Cloud Instance Offline / Hibernated</strong><br>
-        Target: <code>${res.host}:${res.port}</code><br>
+        <strong>Aiven Cloud Instance Offline / Paused</strong><br>
+        Target: <code>${res.host || res.connection?.host}:${res.port || res.connection?.port}</code><br>
         <div style="font-size: 0.8rem; margin-top: 0.25rem;">
-          The app is continuously polling every 5s. If your Aiven service is paused, click <strong>Resume</strong> in <a href="https://console.aiven.io" target="_blank" style="color: #b45309; text-decoration: underline; font-weight: 600;">Aiven Console</a> to bring it online.
+          Status: <em>${res.lastError || res.connection?.error || 'Aiven service unreachable'}</em>.<br>
+          Zero data loss: Student reports and admin approvals are securely captured by persistent fallback.
         </div>
       </div>
     `;
+  }
+}
+
+async function runDiagnosticsFromModal(btnElem = null) {
+  let prevText = "Run Diagnostics 🔍";
+  if (btnElem) {
+    prevText = btnElem.textContent;
+    btnElem.disabled = true;
+    btnElem.textContent = "Checking...";
+  }
+  showToast("Running full Aiven MySQL connection and pool diagnostic...");
+  try {
+    const diag = await apiRequest("/api/diagnostic");
+    const outElem = document.getElementById("diagnostics-detail-output");
+    if (outElem) {
+      outElem.style.display = "block";
+      const isOk = diag.success;
+      outElem.innerHTML = `
+        <div style="background: ${isOk ? '#f0fdf4' : '#fff1f2'}; border: 1px solid ${isOk ? '#bbf7d0' : '#fecdd3'}; border-radius: 6px; padding: 0.6rem; margin-top: 0.5rem;">
+          <div style="font-weight: 700; color: ${isOk ? '#166534' : '#991b1b'}; margin-bottom: 0.25rem;">
+            ${isOk ? '✅ Aiven MySQL Operational (' + (diag.connection.latency_ms || 0) + 'ms)' : '❌ Aiven Cloud Unreachable'}
+          </div>
+          <div style="color: #334155; font-size: 0.76rem; margin-bottom: 0.4rem;">
+            <strong>Root Cause Analysis:</strong> ${diag.root_cause_analysis?.identified_issues?.[0] || diag.connection?.diagnostic_summary}
+          </div>
+          <div style="color: #334155; font-size: 0.76rem; margin-bottom: 0.4rem;">
+            <strong>Protection:</strong> ${diag.root_cause_analysis?.protection_mechanism || 'Local fallback active'}
+          </div>
+          <div style="color: #475569; font-size: 0.74rem;">
+            <strong>Action Steps:</strong>
+            <ul style="padding-left: 1.1rem; margin: 0.2rem 0 0 0;">
+              ${(diag.actionable_steps || []).map(s => `<li>${s}</li>`).join("")}
+            </ul>
+          </div>
+        </div>
+      `;
+    }
+    renderAivenStatusBanner(diag);
+    if (diag.success) {
+      showToast("✅ Diagnostic passed: Aiven MySQL is connected!");
+    } else {
+      showToast("⚠️ Diagnostic completed: Aiven is offline. Resilient fallback active.", true);
+    }
+  } catch (err) {
+    showToast(`Diagnostic failed: ${err.message}`, true);
+  } finally {
+    if (btnElem) {
+      btnElem.disabled = false;
+      btnElem.textContent = prevText;
+    }
   }
 }
 
@@ -1301,6 +1361,7 @@ window.closeAivenModal = closeAivenModal;
 window.testAivenFromModal = testAivenFromModal;
 window.saveAivenFromModal = saveAivenFromModal;
 window.checkAivenStatus = checkAivenStatus;
+window.runDiagnosticsFromModal = runDiagnosticsFromModal;
 window.initApp = initApp;
 window.initLogin = initLogin;
 window.initStudentDashboard = initStudentDashboard;

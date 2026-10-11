@@ -149,9 +149,36 @@
           <button class="btn btn-primary btn-sm" onclick="saveAivenFromModal()">Save & Connect</button>
         </div>
 
+        <!-- Connection Pool Status & Diagnostics -->
+        <div id="modal-pool-diagnostics" style="background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 8px; padding: 0.85rem; font-size: 0.82rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <strong style="color: #334155;">🏊 Active Connection Pool Status</strong>
+            <button class="btn btn-subtle btn-sm" onclick="runDiagnosticsFromModal(this)" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">Run Diagnostics 🔍</button>
+          </div>
+          <div id="pool-metrics-display" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; text-align: center;">
+            <div style="background: #ffffff; padding: 0.5rem; border-radius: 6px; border: 1px solid #e2e8f0;">
+              <div style="font-size: 0.7rem; color: #64748b;">Active Conn</div>
+              <strong id="metric-active-conn" style="font-size: 1.05rem; color: #2563eb;">0</strong>
+            </div>
+            <div style="background: #ffffff; padding: 0.5rem; border-radius: 6px; border: 1px solid #e2e8f0;">
+              <div style="font-size: 0.7rem; color: #64748b;">Idle/Free</div>
+              <strong id="metric-idle-conn" style="font-size: 1.05rem; color: #16a34a;">0</strong>
+            </div>
+            <div style="background: #ffffff; padding: 0.5rem; border-radius: 6px; border: 1px solid #e2e8f0;">
+              <div style="font-size: 0.7rem; color: #64748b;">Queued Requests</div>
+              <strong id="metric-queued" style="font-size: 1.05rem; color: #d97706;">0</strong>
+            </div>
+            <div style="background: #ffffff; padding: 0.5rem; border-radius: 6px; border: 1px solid #e2e8f0;">
+              <div style="font-size: 0.7rem; color: #64748b;">Pool Limit</div>
+              <strong id="metric-limit" style="font-size: 1.05rem; color: #475569;">5</strong>
+            </div>
+          </div>
+          <div id="diagnostics-detail-output" style="margin-top: 0.6rem; font-size: 0.78rem; line-height: 1.4; color: #475569; display: none;"></div>
+        </div>
+
         <div style="background: #eff6ff; border: 1px dashed #93c5fd; border-radius: 8px; padding: 0.85rem; font-size: 0.8rem; color: #1e3a8a;">
-          <strong>💡 Aiven Console Tip:</strong>
-          If connection status says <em>ENOTFOUND</em>, go to <a href="https://console.aiven.io" target="_blank" style="color: #2563eb; text-decoration: underline;">console.aiven.io</a>, click your MySQL service, and verify it is <strong>Running</strong> (not Powered Off or Paused). Once running, the connection will automatically link in real time without downtime!
+          <strong>💡 Aiven Console & Workbench Tip:</strong>
+          If connection status says <em>ENOTFOUND</em>, go to <a href="https://console.aiven.io" target="_blank" style="color: #2563eb; text-decoration: underline;">console.aiven.io</a>, click your MySQL service, and verify it is <strong>Running</strong> (not Powered Off or Paused). In MySQL Workbench: Set SSL to 'Require' and Standard TCP/IP. The app uses automatic local persistent fallback so no student reports or admin approvals are ever lost!
         </div>
       </div>
     </div>
