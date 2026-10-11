@@ -33,8 +33,10 @@
             <span>Dept: <strong id="student-dept" style="color: #0f172a;"></strong></span>
             <span>Email: <strong id="student-email" style="color: #0f172a;"></strong></span>
           </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+          <a href="/items.html" class="btn btn-outline btn-sm">Explore Campus Items →</a>
+          <button class="btn btn-outline btn-sm" style="border-color: #fca5a5; color: #b91c1c;" onclick="setAuth('demo-token-' + Date.now(), { id: 'adm_001', name: 'Hariom Singh', email: 'hariom18august@gmail.com', role: 'admin', office_location: 'Student Activity Center Rm 104', phone: '555-0199' }); window.location.href='admin-dashboard.html';">🛡️ Open Admin Portal</button>
         </div>
-        <a href="/items.html" class="btn btn-outline btn-sm">Explore Campus Items →</a>
       </div>
     </div>
 

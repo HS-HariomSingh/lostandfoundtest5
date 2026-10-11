@@ -286,14 +286,15 @@ app.post("/api/items", async (req, res) => {
     date,
     image_url: image_url || "https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?auto=format&fit=crop&w=600&q=80",
     status: user.role === "admin" ? "approved" : "pending",
-    student_id: user.id,
-    student_name: user.name,
-    student_email: user.email,
+    student_id: user.id || "std_101",
+    student_name: user.name || "Student",
+    student_email: user.email || "arth@campus.edu",
+    roll_no: user.student_id || user.roll_no || "CS202401",
     created_at: new Date().toISOString()
   };
 
-  await createItem(newItem);
-  res.json({ message: "Report submitted successfully", item: newItem });
+  const created = await createItem(newItem);
+  res.json({ message: "Report submitted successfully", item: created || newItem });
 });
 
 app.get("/api/student/reports", async (req, res) => {

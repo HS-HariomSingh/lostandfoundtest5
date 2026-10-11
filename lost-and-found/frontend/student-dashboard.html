@@ -4,19 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Student Dashboard - Campus Lost and Found</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
   <header class="site-header">
     <div class="nav-container">
-      <a href="index.html" class="brand-logo">
+      <a href="/index.html" class="brand-logo">
         <div class="brand-icon">🔍</div>
         <span>Campus Lost & Found</span>
       </a>
       <ul class="nav-links">
-        <li><a href="index.html" class="nav-link">Home</a></li>
-        <li><a href="items.html" class="nav-link">Browse Items</a></li>
-        <li><a href="student-dashboard.html" class="nav-link active">Student Portal</a></li>
+        <li><a href="/index.html" class="nav-link">Home</a></li>
+        <li><a href="/items.html" class="nav-link">Browse Items</a></li>
+        <li><a href="/student-dashboard.html" class="nav-link active">Student Portal</a></li>
       </ul>
       <div id="nav-actions" class="nav-actions"></div>
     </div>
@@ -33,8 +33,10 @@
             <span>Dept: <strong id="student-dept" style="color: #0f172a;"></strong></span>
             <span>Email: <strong id="student-email" style="color: #0f172a;"></strong></span>
           </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+          <a href="/items.html" class="btn btn-outline btn-sm">Explore Campus Items →</a>
+          <button class="btn btn-outline btn-sm" style="border-color: #fca5a5; color: #b91c1c;" onclick="setAuth('demo-token-' + Date.now(), { id: 'adm_001', name: 'Hariom Singh', email: 'hariom18august@gmail.com', role: 'admin', office_location: 'Student Activity Center Rm 104', phone: '555-0199' }); window.location.href='admin-dashboard.html';">🛡️ Open Admin Portal</button>
         </div>
-        <a href="items.html" class="btn btn-outline btn-sm">Explore Campus Items →</a>
       </div>
     </div>
 
@@ -131,6 +133,6 @@
     </div>
   </footer>
 
-  <script src="script.js"></script>
+  <script src="/script.js"></script>
 </body>
 </html>

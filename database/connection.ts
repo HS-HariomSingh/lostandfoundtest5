@@ -240,7 +240,7 @@ export async function syncLocalToAiven(): Promise<void> {
       await pool.query(`
         INSERT INTO claim (claim_id, proof_description, contact_phone, status, item_id, student_id, reviewed_by, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
-        ON DUPLICATE KEY UPDATE status=VALUES(status)
+        ON DUPLICATE KEY UPDATE status=VALUES(status), reviewed_by=VALUES(reviewed_by)
       `, [
         cl.claim_id || id,
         cl.proof_description,
@@ -249,6 +249,20 @@ export async function syncLocalToAiven(): Promise<void> {
         cl.item_id,
         cl.student_id,
         cl.reviewed_by || null
+      ]);
+    }
+
+    // 8. Sync Status Logs
+    for (const [id, log] of Object.entries(local.item_status_log || {})) {
+      await pool.query(`
+        INSERT IGNORE INTO item_status_log (log_id, old_status, new_status, item_id, changed_at)
+        VALUES (?, ?, ?, ?, ?)
+      `, [
+        log.log_id || id,
+        log.old_status || null,
+        log.new_status || 'pending',
+        log.item_id,
+        log.changed_at ? new Date(log.changed_at) : new Date()
       ]);
     }
 
@@ -572,6 +586,7 @@ export async function initAivenDatabase(): Promise<void> {
         console.log('[DB] 🚀 Aiven MySQL is back online! Switched to live cloud database.');
         try {
           await initAivenDatabase();
+          await syncLocalToAiven();
         } catch {}
       }
     }
@@ -711,10 +726,18 @@ export async function getItems(filters: {
     try {
       const pool = getAivenPool();
       let sql = `
-        SELECT i.item_id AS id, i.title, i.item_type AS type, i.description,
-               i.event_date AS date, i.image_url, i.status, i.created_at,
-               c.category_name AS category, l.location_name AS location,
-               s.student_id AS student_id, s.name AS student_name, s.email AS student_email, s.roll_no AS student_roll_no,
+        SELECT i.item_id AS id, i.item_id AS item_id, i.title,
+               i.item_type AS type, i.item_type AS item_type, i.description,
+               i.event_date AS date, i.event_date AS event_date, i.image_url, i.status, i.created_at,
+               COALESCE(c.category_name, 'General') AS category,
+               COALESCE(c.category_name, 'General') AS category_name,
+               i.category_id AS category_id,
+               COALESCE(l.location_name, 'Campus') AS location,
+               COALESCE(l.location_name, 'Campus') AS location_name,
+               i.location_id AS location_id,
+               s.student_id AS student_id, s.student_id AS reported_by,
+               s.name AS student_name, s.email AS student_email,
+               s.roll_no AS roll_no, s.roll_no AS student_roll_no,
                a.name AS reviewer_name
         FROM item i
         LEFT JOIN category c ON i.category_id = c.category_id
@@ -738,7 +761,7 @@ export async function getItems(filters: {
         params.push(filters.category, filters.category);
       }
       if (filters.search) {
-        sql += ' AND (LOWER(i.title) LIKE ? OR LOWER(i.description) LIKE ? OR LOWER(l.location_name) LIKE ?)';
+        sql += ' AND (LOWER(i.title) LIKE ? OR LOWER(i.description) LIKE ? OR LOWER(COALESCE(l.location_name, \'\')) LIKE ?)';
         const term = `%${filters.search.toLowerCase()}%`;
         params.push(term, term, term);
       }
@@ -755,23 +778,34 @@ export async function getItems(filters: {
   let items = Object.entries(local.item || {}).map(([k, v]: [string, any]) => {
     const cat = local.category?.[v.category_id]?.category_name || v.category || v.category_name || 'General';
     const loc = local.location?.[v.location_id]?.location_name || v.location || v.location_name || 'Campus';
-    const std = local.student?.[v.reported_by] || {};
+    const std = local.student?.[v.reported_by || v.student_id] || {};
+    const itemId = v.item_id || v.id || k;
+    const itemType = v.item_type || v.type || 'lost';
+    const eventDate = v.event_date || v.date || new Date().toISOString().slice(0, 10);
     return {
-      id: v.item_id || k,
-      title: v.title,
-      type: v.item_type || v.type,
+      id: itemId,
+      item_id: itemId,
+      title: v.title || 'Untitled',
+      type: itemType,
+      item_type: itemType,
       category: cat,
-      category_id: v.category_id,
+      category_name: cat,
+      category_id: v.category_id || 'cat_elec',
       location: loc,
-      location_id: v.location_id,
-      description: v.description,
-      date: v.event_date || v.date,
-      image_url: v.image_url,
-      status: v.status,
-      student_id: v.reported_by || v.student_id,
-      student_name: std.name || v.student_name,
-      student_email: std.email || v.student_email,
-      created_at: v.created_at
+      location_name: loc,
+      location_id: v.location_id || 'loc_lib',
+      description: v.description || '',
+      date: eventDate,
+      event_date: eventDate,
+      image_url: v.image_url || null,
+      status: v.status || 'pending',
+      student_id: v.reported_by || v.student_id || 'std_101',
+      reported_by: v.reported_by || v.student_id || 'std_101',
+      student_name: std.name || v.student_name || 'Student',
+      student_email: std.email || v.student_email || '',
+      roll_no: std.roll_no || v.roll_no || v.student_roll_no || '',
+      student_roll_no: std.roll_no || v.roll_no || v.student_roll_no || '',
+      created_at: v.created_at || new Date().toISOString()
     };
   });
 
@@ -779,10 +813,10 @@ export async function getItems(filters: {
     items = items.filter((it: any) => it.status === filters.status_filter);
   }
   if (filters.type && filters.type !== 'all') {
-    items = items.filter((it: any) => it.type === filters.type);
+    items = items.filter((it: any) => it.type === filters.type || it.item_type === filters.type);
   }
   if (filters.category && filters.category !== 'all') {
-    items = items.filter((it: any) => it.category === filters.category);
+    items = items.filter((it: any) => it.category === filters.category || it.category_id === filters.category);
   }
   if (filters.search) {
     const term = filters.search.toLowerCase();
@@ -800,10 +834,18 @@ export async function getItemById(id: string): Promise<any | null> {
     try {
       const pool = getAivenPool();
       const [rows] = await pool.query<any[]>(`
-        SELECT i.item_id AS id, i.title, i.item_type AS type, i.description,
-               i.event_date AS date, i.image_url, i.status, i.created_at,
-               c.category_name AS category, l.location_name AS location,
-               s.student_id AS student_id, s.name AS student_name, s.email AS student_email, s.roll_no AS student_roll_no,
+        SELECT i.item_id AS id, i.item_id AS item_id, i.title,
+               i.item_type AS type, i.item_type AS item_type, i.description,
+               i.event_date AS date, i.event_date AS event_date, i.image_url, i.status, i.created_at,
+               COALESCE(c.category_name, 'General') AS category,
+               COALESCE(c.category_name, 'General') AS category_name,
+               i.category_id AS category_id,
+               COALESCE(l.location_name, 'Campus') AS location,
+               COALESCE(l.location_name, 'Campus') AS location_name,
+               i.location_id AS location_id,
+               s.student_id AS student_id, s.student_id AS reported_by,
+               s.name AS student_name, s.email AS student_email,
+               s.roll_no AS roll_no, s.roll_no AS student_roll_no,
                a.name AS reviewer_name
         FROM item i
         LEFT JOIN category c ON i.category_id = c.category_id
@@ -819,25 +861,46 @@ export async function getItemById(id: string): Promise<any | null> {
   }
 
   const local = getLocalDb();
-  const v = local.item?.[id];
+  let v = local.item?.[id];
+  if (!v) {
+    for (const [k, itemObj] of Object.entries(local.item || {})) {
+      if (k === id || (itemObj as any).item_id === id || (itemObj as any).id === id) {
+        v = itemObj;
+        break;
+      }
+    }
+  }
+
   if (v) {
-    const cat = local.category?.[v.category_id]?.category_name || v.category || 'General';
-    const loc = local.location?.[v.location_id]?.location_name || v.location || 'Campus';
-    const std = local.student?.[v.reported_by] || {};
+    const cat = local.category?.[v.category_id]?.category_name || v.category || v.category_name || 'General';
+    const loc = local.location?.[v.location_id]?.location_name || v.location || v.location_name || 'Campus';
+    const std = local.student?.[v.reported_by || v.student_id] || {};
+    const itemId = v.item_id || v.id || id;
+    const itemType = v.item_type || v.type || 'lost';
+    const eventDate = v.event_date || v.date || new Date().toISOString().slice(0, 10);
     return {
-      id: v.item_id || id,
-      title: v.title,
-      type: v.item_type || v.type,
+      id: itemId,
+      item_id: itemId,
+      title: v.title || 'Untitled',
+      type: itemType,
+      item_type: itemType,
       category: cat,
+      category_name: cat,
+      category_id: v.category_id || 'cat_elec',
       location: loc,
-      description: v.description,
-      date: v.event_date || v.date,
-      image_url: v.image_url,
-      status: v.status,
-      student_id: v.reported_by || v.student_id,
-      student_name: std.name || v.student_name,
-      student_email: std.email || v.student_email,
-      created_at: v.created_at
+      location_name: loc,
+      location_id: v.location_id || 'loc_lib',
+      description: v.description || '',
+      date: eventDate,
+      event_date: eventDate,
+      image_url: v.image_url || null,
+      status: v.status || 'pending',
+      student_id: v.reported_by || v.student_id || 'std_101',
+      reported_by: v.reported_by || v.student_id || 'std_101',
+      student_name: std.name || v.student_name || 'Student',
+      student_email: std.email || v.student_email || '',
+      roll_no: std.roll_no || v.roll_no || '',
+      created_at: v.created_at || new Date().toISOString()
     };
   }
   return null;
@@ -846,29 +909,113 @@ export async function getItemById(id: string): Promise<any | null> {
 export async function createItem(item: any): Promise<any> {
   const local = getLocalDb();
 
-  // Resolve category_id and location_id
+  // Resolve or create category
   let categoryId = item.category_id;
+  let categoryName = item.category || 'General';
   if (!categoryId && item.category) {
-    const foundCat = Object.values(local.category || {}).find((c: any) => c.category_name.toLowerCase() === item.category.toLowerCase());
-    categoryId = foundCat?.category_id || 'cat_elec';
+    const foundCat = Object.values(local.category || {}).find(
+      (c: any) => c.category_name.toLowerCase() === String(item.category).trim().toLowerCase()
+    );
+    if (foundCat) {
+      categoryId = foundCat.category_id;
+      categoryName = foundCat.category_name;
+    } else {
+      categoryId = `cat_${crypto.randomBytes(3).toString('hex')}`;
+      categoryName = String(item.category).trim();
+      if (!local.category) local.category = {};
+      local.category[categoryId] = { category_id: categoryId, category_name: categoryName };
+      if (aivenAvailable) {
+        try {
+          const pool = getAivenPool();
+          await pool.query('INSERT IGNORE INTO category (category_id, category_name) VALUES (?, ?)', [categoryId, categoryName]);
+        } catch {}
+      }
+    }
   }
+  if (!categoryId) categoryId = 'cat_elec';
+
+  // Resolve or create location
   let locationId = item.location_id;
+  let locationName = item.location || 'Campus';
   if (!locationId && item.location) {
-    const foundLoc = Object.values(local.location || {}).find((l: any) => l.location_name.toLowerCase().includes(item.location.toLowerCase()));
-    locationId = foundLoc?.location_id || 'loc_lib';
+    const locText = String(item.location).trim();
+    const foundLoc = Object.values(local.location || {}).find(
+      (l: any) => l.location_name.toLowerCase() === locText.toLowerCase()
+    );
+    if (foundLoc) {
+      locationId = foundLoc.location_id;
+      locationName = foundLoc.location_name;
+    } else {
+      locationId = `loc_${crypto.randomBytes(3).toString('hex')}`;
+      locationName = locText;
+      if (!local.location) local.location = {};
+      local.location[locationId] = { location_id: locationId, location_name: locationName };
+      if (aivenAvailable) {
+        try {
+          const pool = getAivenPool();
+          await pool.query('INSERT IGNORE INTO location (location_id, location_name) VALUES (?, ?)', [locationId, locationName]);
+        } catch {}
+      }
+    }
+  }
+  if (!locationId) locationId = 'loc_lib';
+
+  // Resolve or create student
+  let studentId = item.student_id || item.reported_by || 'std_101';
+  const foundStudent = Object.values(local.student || {}).find(
+    (s: any) => s.student_id === studentId || s.roll_no === studentId || (item.student_email && s.email.toLowerCase() === item.student_email.toLowerCase())
+  );
+  if (foundStudent) {
+    studentId = foundStudent.student_id;
+  } else {
+    // If not found in local student map, ensure student exists
+    if (!local.student) local.student = {};
+    local.student[studentId] = {
+      student_id: studentId,
+      roll_no: item.roll_no || `ROLL-${studentId}`,
+      name: item.student_name || 'Student',
+      email: item.student_email || `${studentId}@campus.edu`,
+      password_hash: hashPassword('password123'),
+      phone: '555-0100',
+      department_id: 'dept_cs'
+    };
+    if (aivenAvailable) {
+      try {
+        const pool = getAivenPool();
+        await pool.query(
+          'INSERT IGNORE INTO student (student_id, roll_no, name, email, password_hash, phone, department_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [studentId, item.roll_no || `ROLL-${studentId}`, item.student_name || 'Student', item.student_email || `${studentId}@campus.edu`, hashPassword('password123'), '555-0100', 'dept_cs']
+        );
+      } catch {}
+    }
   }
 
+  const itemId = item.id || `item_${crypto.randomBytes(4).toString('hex')}`;
+  const itemType = item.type || item.item_type || 'lost';
+  const eventDate = item.date || item.event_date || new Date().toISOString().slice(0, 10);
+
   const normalized = {
-    item_id: item.id,
+    id: itemId,
+    item_id: itemId,
     title: item.title,
-    item_type: item.type,
+    type: itemType,
+    item_type: itemType,
     description: item.description,
-    event_date: item.date,
-    image_url: item.image_url,
+    date: eventDate,
+    event_date: eventDate,
+    image_url: item.image_url || null,
     status: item.status || 'pending',
-    category_id: categoryId || 'cat_elec',
-    location_id: locationId || 'loc_lib',
-    reported_by: item.student_id || 'std_101',
+    category: categoryName,
+    category_name: categoryName,
+    category_id: categoryId,
+    location: locationName,
+    location_name: locationName,
+    location_id: locationId,
+    student_id: studentId,
+    reported_by: studentId,
+    student_name: item.student_name || foundStudent?.name || 'Student',
+    student_email: item.student_email || foundStudent?.email || '',
+    roll_no: foundStudent?.roll_no || '',
     reviewed_by: item.reviewed_by || null,
     created_at: new Date().toISOString()
   };
@@ -876,6 +1023,13 @@ export async function createItem(item: any): Promise<any> {
   if (aivenAvailable) {
     try {
       const pool = getAivenPool();
+      await pool.query('INSERT IGNORE INTO category (category_id, category_name) VALUES (?, ?)', [categoryId, categoryName]);
+      await pool.query('INSERT IGNORE INTO location (location_id, location_name) VALUES (?, ?)', [locationId, locationName]);
+      await pool.query(
+        'INSERT IGNORE INTO student (student_id, roll_no, name, email, password_hash, phone, department_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [studentId, normalized.roll_no || `ROLL-${studentId}`, normalized.student_name, normalized.student_email || `${studentId}@campus.edu`, hashPassword('password123'), '555-0100', 'dept_cs']
+      );
+
       await pool.query(`
         INSERT INTO item (item_id, title, item_type, description, event_date, image_url, status, category_id, location_id, reported_by, reviewed_by, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
@@ -893,70 +1047,120 @@ export async function createItem(item: any): Promise<any> {
         normalized.reviewed_by
       ]);
 
-      // Insert initial log
       const logId = `log_${normalized.item_id}_${Date.now()}`;
       await pool.query(
         'INSERT INTO item_status_log (log_id, old_status, new_status, item_id) VALUES (?, NULL, ?, ?)',
         [logId, normalized.status, normalized.item_id]
       );
     } catch (e) {
+      console.warn('[DB] Aiven item insert warning:', e);
       aivenAvailable = false;
     }
   }
 
   if (!local.item) local.item = {};
-  local.item[item.id] = {
-    ...normalized,
-    category: item.category || 'General',
-    location: item.location || 'Campus',
-    student_name: item.student_name,
-    student_email: item.student_email
-  };
+  local.item[itemId] = normalized;
 
-  // Local log
   if (!local.item_status_log) local.item_status_log = {};
-  local.item_status_log[`log_${item.id}_init`] = {
-    log_id: `log_${item.id}_init`,
+  const logId = `log_${itemId}_init`;
+  local.item_status_log[logId] = {
+    log_id: logId,
     old_status: null,
     new_status: normalized.status,
-    item_id: item.id,
+    item_id: itemId,
     changed_at: new Date().toISOString()
   };
 
   saveLocalDb(local);
-  return { id: item.id, ...normalized };
+  return normalized;
 }
 
 export async function updateItemStatus(id: string, status: string, adminId?: string): Promise<boolean> {
   const local = getLocalDb();
   let oldStatus = 'pending';
+  let targetKey: string | null = null;
+  const reviewerAdminId = adminId || 'adm_001';
+
+  if (local.item?.[id]) {
+    targetKey = id;
+  } else {
+    for (const [k, v] of Object.entries(local.item || {})) {
+      if (k === id || (v as any).item_id === id || (v as any).id === id || String(k).toLowerCase() === id.toLowerCase()) {
+        targetKey = k;
+        break;
+      }
+    }
+  }
+
+  const existingItem = targetKey ? local.item?.[targetKey] : (local.item?.[id] || null);
 
   if (aivenAvailable) {
     try {
       const pool = getAivenPool();
-      const [rows] = await pool.query<any[]>('SELECT status FROM item WHERE item_id = ? LIMIT 1', [id]);
-      if (rows && rows.length > 0) oldStatus = rows[0].status;
 
+      // Ensure admin exists in Aiven table
       await pool.query(
-        'UPDATE item SET status = ?, reviewed_by = ? WHERE item_id = ?',
-        [status, adminId || 'adm_001', id]
+        'INSERT IGNORE INTO admin (admin_id, staff_code, name, email, password_hash, office_location, phone) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [reviewerAdminId, 'STAFF-SEC-01', 'Hariom Singh', 'hariom18august@gmail.com', hashPassword('admin123'), 'Student Activity Center Rm 104', '555-0199']
       );
 
-      // Audit status change
+      const [rows] = await pool.query<any[]>('SELECT status FROM item WHERE item_id = ? LIMIT 1', [id]);
+      if (rows && rows.length > 0) {
+        oldStatus = rows[0].status;
+        await pool.query(
+          'UPDATE item SET status = ?, reviewed_by = ? WHERE item_id = ?',
+          [status, reviewerAdminId, id]
+        );
+      } else if (existingItem) {
+        // Item was created while Aiven was offline; seed foreign keys and insert item
+        oldStatus = existingItem.status || 'pending';
+        const catId = existingItem.category_id || 'cat_elec';
+        const locId = existingItem.location_id || 'loc_lib';
+        const repId = existingItem.reported_by || existingItem.student_id || 'std_101';
+
+        await pool.query('INSERT IGNORE INTO category (category_id, category_name) VALUES (?, ?)', [catId, existingItem.category || 'General']);
+        await pool.query('INSERT IGNORE INTO location (location_id, location_name) VALUES (?, ?)', [locId, existingItem.location || 'Campus']);
+        await pool.query(
+          'INSERT IGNORE INTO student (student_id, roll_no, name, email, password_hash, phone, department_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+          [repId, existingItem.roll_no || `ROLL-${repId}`, existingItem.student_name || 'Student', existingItem.student_email || `${repId}@campus.edu`, hashPassword('password123'), '555-0100', 'dept_cs']
+        );
+
+        await pool.query(`
+          INSERT INTO item (item_id, title, item_type, description, event_date, image_url, status, category_id, location_id, reported_by, reviewed_by, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+          ON DUPLICATE KEY UPDATE status = VALUES(status), reviewed_by = VALUES(reviewed_by)
+        `, [
+          id,
+          existingItem.title || 'Belonging',
+          existingItem.item_type || existingItem.type || 'lost',
+          existingItem.description || '',
+          existingItem.event_date || existingItem.date || new Date().toISOString().slice(0, 10),
+          existingItem.image_url || null,
+          status,
+          catId,
+          locId,
+          repId,
+          reviewerAdminId
+        ]);
+      }
+
       const logId = `log_${id}_${Date.now()}`;
       await pool.query(
         'INSERT INTO item_status_log (log_id, old_status, new_status, item_id) VALUES (?, ?, ?, ?)',
         [logId, oldStatus, status, id]
       );
     } catch (e) {
+      console.warn('[DB] Aiven status update warning:', e);
       aivenAvailable = false;
     }
   }
 
-  if (local.item?.[id]) {
-    oldStatus = local.item[id].status || 'pending';
-    local.item[id].status = status;
-    local.item[id].reviewed_by = adminId || 'adm_001';
+  if (targetKey && local.item?.[targetKey]) {
+    oldStatus = local.item[targetKey].status || 'pending';
+    local.item[targetKey].status = status;
+    local.item[targetKey].reviewed_by = reviewerAdminId;
+  } else {
+    local.item[id] = { id, item_id: id, status, reviewed_by: reviewerAdminId };
   }
 
   if (!local.item_status_log) local.item_status_log = {};
@@ -986,7 +1190,16 @@ export async function deleteItem(id: string): Promise<boolean> {
   }
 
   const local = getLocalDb();
-  if (local.item?.[id]) delete local.item[id];
+  if (local.item?.[id]) {
+    delete local.item[id];
+  } else {
+    for (const [k, v] of Object.entries(local.item || {})) {
+      if (k === id || (v as any).item_id === id) {
+        delete local.item[k];
+        break;
+      }
+    }
+  }
   if (local.claim) {
     for (const [k, c] of Object.entries(local.claim)) {
       if ((c as any).item_id === id) delete local.claim[k];
@@ -1001,12 +1214,27 @@ export async function deleteItem(id: string): Promise<boolean> {
   return true;
 }
 
-export async function getStudentReports(studentId: string): Promise<any[]> {
-  return getItems({}).then(all => all.filter(it => it.student_id === studentId || it.reported_by === studentId));
+export async function getStudentReports(studentIdOrEmail: string): Promise<any[]> {
+  const all = await getItems({});
+  const query = String(studentIdOrEmail || '').trim().toLowerCase();
+  return all.filter(it => {
+    const sId = String(it.student_id || '').toLowerCase();
+    const repBy = String(it.reported_by || '').toLowerCase();
+    const sEmail = String(it.student_email || '').toLowerCase();
+    const rollNo = String(it.roll_no || it.student_roll_no || '').toLowerCase();
+    return sId === query || repBy === query || sEmail === query || rollNo === query;
+  });
 }
 
-export async function getStudentClaims(studentId: string): Promise<any[]> {
-  return getAllClaims().then(claims => claims.filter(c => c.student_id === studentId));
+export async function getStudentClaims(studentIdOrEmail: string): Promise<any[]> {
+  const all = await getAllClaims();
+  const query = String(studentIdOrEmail || '').trim().toLowerCase();
+  return all.filter(c => {
+    const sId = String(c.student_id || '').toLowerCase();
+    const sEmail = String(c.student_email || '').toLowerCase();
+    const rollNo = String(c.roll_no || '').toLowerCase();
+    return sId === query || sEmail === query || rollNo === query;
+  });
 }
 
 export async function getAllClaims(): Promise<any[]> {
@@ -1074,6 +1302,38 @@ export async function createClaim(claim: {
   if (aivenAvailable) {
     try {
       const pool = getAivenPool();
+
+      // Ensure student exists
+      await pool.query(
+        'INSERT IGNORE INTO student (student_id, roll_no, name, email, password_hash, phone, department_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [claim.student_id, `ROLL-${claim.student_id}`, claim.student_name || 'Student', claim.student_email || `${claim.student_id}@campus.edu`, hashPassword('password123'), claim.contact_phone || '555-0100', 'dept_cs']
+      );
+
+      // Ensure item exists in Aiven
+      const [itRows] = await pool.query<any[]>('SELECT item_id FROM item WHERE item_id = ? LIMIT 1', [claim.item_id]);
+      if (itRows.length === 0 && local.item?.[claim.item_id]) {
+        const it = local.item[claim.item_id];
+        await pool.query('INSERT IGNORE INTO category (category_id, category_name) VALUES (?, ?)', [it.category_id || 'cat_elec', it.category || 'General']);
+        await pool.query('INSERT IGNORE INTO location (location_id, location_name) VALUES (?, ?)', [it.location_id || 'loc_lib', it.location || 'Campus']);
+        await pool.query(`
+          INSERT INTO item (item_id, title, item_type, description, event_date, image_url, status, category_id, location_id, reported_by, reviewed_by, created_at)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+          ON DUPLICATE KEY UPDATE status=VALUES(status)
+        `, [
+          claim.item_id,
+          it.title || 'Belonging',
+          it.item_type || it.type || 'found',
+          it.description || '',
+          it.event_date || it.date || new Date().toISOString().slice(0, 10),
+          it.image_url || null,
+          it.status || 'approved',
+          it.category_id || 'cat_elec',
+          it.location_id || 'loc_lib',
+          it.reported_by || it.student_id || 'std_101',
+          null
+        ]);
+      }
+
       await pool.query(`
         INSERT INTO claim (claim_id, proof_description, contact_phone, status, item_id, student_id, reviewed_by, created_at)
         VALUES (?, ?, ?, ?, ?, ?, NULL, NOW())
@@ -1089,6 +1349,7 @@ export async function createClaim(claim: {
       if (e.code === 'ER_DUP_ENTRY' || String(e).includes('uq_claim_item_student')) {
         throw new Error('You have already submitted an ownership claim for this item.');
       }
+      console.warn('[DB] Aiven claim insert warning:', e);
       aivenAvailable = false;
     }
   }
@@ -1113,17 +1374,44 @@ export async function createClaim(claim: {
 export async function updateClaimStatus(claimId: string, status: string, adminId?: string): Promise<boolean> {
   let itemId: string | null = null;
   const local = getLocalDb();
+  const reviewerAdminId = adminId || 'adm_001';
 
   if (aivenAvailable) {
     try {
       const pool = getAivenPool();
-      const [rows] = await pool.query<any[]>('SELECT item_id FROM claim WHERE claim_id = ? LIMIT 1', [claimId]);
-      if (rows && rows.length > 0) itemId = rows[0].item_id;
 
-      await pool.query('UPDATE claim SET status = ?, reviewed_by = ? WHERE claim_id = ?', [status, adminId || 'adm_001', claimId]);
+      // Ensure admin exists
+      await pool.query(
+        'INSERT IGNORE INTO admin (admin_id, staff_code, name, email, password_hash, office_location, phone) VALUES (?, ?, ?, ?, ?, ?, ?)',
+        [reviewerAdminId, 'STAFF-SEC-01', 'Hariom Singh', 'hariom18august@gmail.com', hashPassword('admin123'), 'Student Activity Center Rm 104', '555-0199']
+      );
+
+      const [rows] = await pool.query<any[]>('SELECT item_id FROM claim WHERE claim_id = ? LIMIT 1', [claimId]);
+      if (rows && rows.length > 0) {
+        itemId = rows[0].item_id;
+        await pool.query('UPDATE claim SET status = ?, reviewed_by = ? WHERE claim_id = ?', [status, reviewerAdminId, claimId]);
+      } else {
+        const cl = local.claim?.[claimId];
+        if (cl) {
+          itemId = cl.item_id;
+          await pool.query(`
+            INSERT INTO claim (claim_id, proof_description, contact_phone, status, item_id, student_id, reviewed_by, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+            ON DUPLICATE KEY UPDATE status = VALUES(status), reviewed_by = VALUES(reviewed_by)
+          `, [
+            claimId,
+            cl.proof_description,
+            cl.contact_phone,
+            status,
+            cl.item_id,
+            cl.student_id,
+            reviewerAdminId
+          ]);
+        }
+      }
 
       if (status === 'approved' && itemId) {
-        await pool.query('UPDATE item SET status = ?, reviewed_by = ? WHERE item_id = ?', ['claimed', adminId || 'adm_001', itemId]);
+        await pool.query('UPDATE item SET status = ?, reviewed_by = ? WHERE item_id = ?', ['claimed', reviewerAdminId, itemId]);
         const logId = `log_${itemId}_${Date.now()}`;
         await pool.query(
           'INSERT INTO item_status_log (log_id, old_status, new_status, item_id) VALUES (?, ?, ?, ?)',
@@ -1131,6 +1419,7 @@ export async function updateClaimStatus(claimId: string, status: string, adminId
         );
       }
     } catch (e) {
+      console.warn('[DB] Aiven claim update warning:', e);
       aivenAvailable = false;
     }
   }

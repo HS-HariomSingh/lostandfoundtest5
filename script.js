@@ -597,18 +597,29 @@ async function initStudentDashboard() {
   }
 
   const reportForm = document.getElementById("report-item-form");
+  const submitBtn = reportForm?.querySelector("button[type='submit']");
   reportForm?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const title = document.getElementById("report-title").value;
+    const title = document.getElementById("report-title").value.trim();
     const type = document.getElementById("report-type").value;
     const category = document.getElementById("report-category").value;
-    const description = document.getElementById("report-desc").value;
-    const location = document.getElementById("report-location").value;
+    const description = document.getElementById("report-desc").value.trim();
+    const location = document.getElementById("report-location").value.trim();
     const date = document.getElementById("report-date").value;
-    const imageUrl = document.getElementById("report-image").value;
+    const imageUrl = document.getElementById("report-image").value.trim();
+
+    if (!title || !description || !location || !date) {
+      showToast("Please fill in all required fields", true);
+      return;
+    }
+
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Storing in Database...";
+    }
 
     try {
-      await apiRequest("/api/items", "POST", {
+      const res = await apiRequest("/api/items", "POST", {
         title,
         type,
         category,
@@ -618,18 +629,36 @@ async function initStudentDashboard() {
         image_url: imageUrl || null
       });
 
-      showToast("Report submitted successfully for administrative review!");
+      showToast(`✅ Report "${title}" saved to database! Awaiting administrative approval.`);
       reportForm.reset();
       if (dateInput) dateInput.value = new Date().toISOString().split("T")[0];
       switchStudentTab("my-reports");
-      loadStudentReports();
+      await loadStudentReports();
     } catch (err) {
-      showToast(err.message, true);
+      showToast(err.message || "Failed to submit report", true);
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Submit Report for Review";
+      }
     }
   });
 
   loadStudentReports();
   loadStudentClaims();
+
+  if (!window.studentPollTimer) {
+    window.studentPollTimer = setInterval(() => {
+      const myRepPane = document.getElementById("pane-my-reports");
+      if (myRepPane && myRepPane.style.display !== "none") {
+        loadStudentReports(true);
+      }
+      const myClaimPane = document.getElementById("pane-my-claims");
+      if (myClaimPane && myClaimPane.style.display !== "none") {
+        loadStudentClaims(true);
+      }
+    }, 4000);
+  }
 }
 
 function switchStudentTab(tabName) {
@@ -886,18 +915,32 @@ async function initAdminDashboard() {
   loadAdminReports();
   loadAdminClaims();
   loadAdminStudents();
+
+  if (!window.adminPollTimer) {
+    window.adminPollTimer = setInterval(() => {
+      loadAdminReports(true);
+      loadAdminClaims(true);
+      loadAdminStats(true);
+    }, 4000);
+  }
 }
 
-async function loadAdminStats() {
+async function loadAdminStats(silent = false) {
   try {
     const s = await apiRequest("/api/admin/stats");
-    document.getElementById("stat-total-students").textContent = s.total_students;
-    document.getElementById("stat-lost-items").textContent = s.lost_items;
-    document.getElementById("stat-found-items").textContent = s.found_items;
-    document.getElementById("stat-pending-reports").textContent = s.pending_reports;
-    document.getElementById("stat-pending-claims").textContent = s.pending_claims;
+    const elStudents = document.getElementById("stat-total-students");
+    const elLost = document.getElementById("stat-lost-items");
+    const elFound = document.getElementById("stat-found-items");
+    const elPendingRep = document.getElementById("stat-pending-reports");
+    const elPendingClaims = document.getElementById("stat-pending-claims");
+
+    if (elStudents) elStudents.textContent = s.total_students;
+    if (elLost) elLost.textContent = s.lost_items;
+    if (elFound) elFound.textContent = s.found_items;
+    if (elPendingRep) elPendingRep.textContent = s.pending_reports;
+    if (elPendingClaims) elPendingClaims.textContent = s.pending_claims;
   } catch (err) {
-    showToast("Error loading stats", true);
+    if (!silent) showToast("Error loading stats", true);
   }
 }
 
@@ -912,7 +955,7 @@ function switchAdminTab(tabName) {
   if (targetBtn) targetBtn.classList.add("active");
 }
 
-async function loadAdminReports() {
+async function loadAdminReports(silent = false) {
   const container = document.getElementById("admin-reports-container");
   if (!container) return;
 
@@ -921,7 +964,7 @@ async function loadAdminReports() {
     const items = res.items || [];
 
     if (items.length === 0) {
-      container.innerHTML = `<div style="text-align: center; padding: 2rem; color: #64748b;">No reports found.</div>`;
+      container.innerHTML = `<div style="text-align: center; padding: 2rem; color: #64748b;">No reports found in database.</div>`;
       return;
     }
 
@@ -941,7 +984,7 @@ async function loadAdminReports() {
           </thead>
           <tbody>
             ${items.map(it => `
-              <tr>
+              <tr id="report-row-${it.id}">
                 <td>
                   <strong>${it.title}</strong>
                   <div style="font-size: 0.78rem; color: #64748b; max-width: 200px; text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${it.description}</div>
@@ -960,13 +1003,13 @@ async function loadAdminReports() {
                 <td>
                   <div class="actions-cell">
                     ${it.status === 'pending' ? `
-                      <button class="btn btn-success btn-sm" onclick="updateItemStatus('${it.id}', 'approved')">Approve</button>
-                      <button class="btn btn-subtle btn-sm" onclick="updateItemStatus('${it.id}', 'rejected')">Reject</button>
+                      <button class="btn btn-success btn-sm" onclick="updateItemStatus('${it.id}', 'approved', this)">Approve</button>
+                      <button class="btn btn-subtle btn-sm" onclick="updateItemStatus('${it.id}', 'rejected', this)">Reject</button>
                     ` : ''}
                     ${it.status === 'approved' ? `
-                      <button class="btn btn-outline btn-sm" onclick="updateItemStatus('${it.id}', 'resolved')">Resolve</button>
+                      <button class="btn btn-outline btn-sm" onclick="updateItemStatus('${it.id}', 'resolved', this)">Resolve</button>
                     ` : ''}
-                    <button class="btn btn-danger btn-sm" onclick="deleteItemReport('${it.id}')">Delete</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteItemReport('${it.id}', this)">Delete</button>
                   </div>
                 </td>
               </tr>
@@ -976,12 +1019,14 @@ async function loadAdminReports() {
       </div>
     `;
   } catch (err) {
-    container.innerHTML = `
-      <div style="padding: 1.5rem; text-align: center; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px;">
-        <p style="color: #e11d48; font-weight: 600; margin-bottom: 0.75rem;">Failed to load reports: ${err.message}</p>
-        <button class="btn btn-primary btn-sm" onclick="reconnectSession()">Reconnect Session ⟳</button>
-      </div>
-    `;
+    if (!silent) {
+      container.innerHTML = `
+        <div style="padding: 1.5rem; text-align: center; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px;">
+          <p style="color: #e11d48; font-weight: 600; margin-bottom: 0.75rem;">Failed to load reports: ${err.message}</p>
+          <button class="btn btn-primary btn-sm" onclick="reconnectSession()">Reconnect Session ⟳</button>
+        </div>
+      `;
+    }
   }
 }
 
@@ -1010,38 +1055,56 @@ async function reconnectSession() {
 }
 window.reconnectSession = reconnectSession;
 
-async function updateItemStatus(itemId, newStatus) {
+async function updateItemStatus(itemId, newStatus, btnElem = null) {
   if (!itemId || itemId === "undefined" || itemId === "null") {
     showToast("Invalid item identifier", true);
     return;
   }
+  let prevText = "";
+  if (btnElem) {
+    prevText = btnElem.textContent;
+    btnElem.disabled = true;
+    btnElem.textContent = "Updating...";
+  }
   try {
     const res = await apiRequest(`/api/admin/reports/${encodeURIComponent(itemId)}/status`, "PUT", { status: newStatus });
-    showToast(res.message || `Report updated to ${newStatus}`);
+    showToast(`✅ ${res.message || `Item status updated to ${newStatus}`}`);
     await loadAdminReports();
     await loadAdminStats();
   } catch (err) {
     showToast(err.message || "Failed to update report status", true);
+    if (btnElem) {
+      btnElem.disabled = false;
+      btnElem.textContent = prevText;
+    }
   }
 }
 
-async function deleteItemReport(itemId) {
+async function deleteItemReport(itemId, btnElem = null) {
   if (!itemId || itemId === "undefined" || itemId === "null") {
     showToast("Invalid item identifier", true);
     return;
   }
   if (!confirm("Are you sure you want to delete this report? This cannot be undone.")) return;
+  if (btnElem) {
+    btnElem.disabled = true;
+    btnElem.textContent = "...";
+  }
   try {
     const res = await apiRequest(`/api/admin/reports/${encodeURIComponent(itemId)}`, "DELETE");
-    showToast(res.message || "Report deleted");
+    showToast(`✅ ${res.message || "Report deleted successfully"}`);
     await loadAdminReports();
     await loadAdminStats();
   } catch (err) {
     showToast(err.message || "Failed to delete report", true);
+    if (btnElem) {
+      btnElem.disabled = false;
+      btnElem.textContent = "Delete";
+    }
   }
 }
 
-async function loadAdminClaims() {
+async function loadAdminClaims(silent = false) {
   const container = document.getElementById("admin-claims-container");
   if (!container) return;
 
@@ -1069,7 +1132,7 @@ async function loadAdminClaims() {
           </thead>
           <tbody>
             ${claims.map(c => `
-              <tr>
+              <tr id="claim-row-${c.id}">
                 <td><strong>${c.item_title}</strong></td>
                 <td>
                   <div>${c.student_name}</div>
@@ -1081,10 +1144,10 @@ async function loadAdminClaims() {
                 <td>
                   <div class="actions-cell">
                     ${c.status === 'pending' ? `
-                      <button class="btn btn-success btn-sm" onclick="updateClaimStatus('${c.id}', 'approved')">Approve Claim</button>
-                      <button class="btn btn-danger btn-sm" onclick="updateClaimStatus('${c.id}', 'rejected')">Reject</button>
+                      <button class="btn btn-success btn-sm" onclick="updateClaimStatus('${c.id}', 'approved', this)">Approve Claim</button>
+                      <button class="btn btn-danger btn-sm" onclick="updateClaimStatus('${c.id}', 'rejected', this)">Reject</button>
                     ` : `
-                      <span style="font-size: 0.8rem; color: #64748b;">Processed</span>
+                      <span style="font-size: 0.8rem; color: #64748b; font-weight: 600;">Processed</span>
                     `}
                   </div>
                 </td>
@@ -1095,28 +1158,44 @@ async function loadAdminClaims() {
       </div>
     `;
   } catch (err) {
-    container.innerHTML = `
-      <div style="padding: 1.5rem; text-align: center; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px;">
-        <p style="color: #e11d48; font-weight: 600; margin-bottom: 0.75rem;">Failed to load claims: ${err.message}</p>
-        <button class="btn btn-primary btn-sm" onclick="reconnectSession()">Reconnect Session ⟳</button>
-      </div>
-    `;
+    if (!silent) {
+      container.innerHTML = `
+        <div style="padding: 1.5rem; text-align: center; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px;">
+          <p style="color: #e11d48; font-weight: 600; margin-bottom: 0.75rem;">Failed to load claims: ${err.message}</p>
+          <button class="btn btn-primary btn-sm" onclick="reconnectSession()">Reconnect Session ⟳</button>
+        </div>
+      `;
+    }
   }
 }
 
-async function updateClaimStatus(claimId, newStatus) {
+async function updateClaimStatus(claimId, newStatus, btnElem = null) {
+  if (!claimId || claimId === "undefined" || claimId === "null") {
+    showToast("Invalid claim identifier", true);
+    return;
+  }
+  let prevText = "";
+  if (btnElem) {
+    prevText = btnElem.textContent;
+    btnElem.disabled = true;
+    btnElem.textContent = "Updating...";
+  }
   try {
-    await apiRequest(`/api/admin/claims/${claimId}/status`, "PUT", { status: newStatus });
-    showToast(`Claim marked as ${newStatus}`);
-    loadAdminClaims();
-    loadAdminStats();
-    loadAdminReports();
+    const res = await apiRequest(`/api/admin/claims/${encodeURIComponent(claimId)}/status`, "PUT", { status: newStatus });
+    showToast(`✅ Claim marked as ${newStatus}`);
+    await loadAdminClaims();
+    await loadAdminStats();
+    await loadAdminReports();
   } catch (err) {
-    showToast(err.message, true);
+    showToast(err.message || "Failed to update claim status", true);
+    if (btnElem) {
+      btnElem.disabled = false;
+      btnElem.textContent = prevText;
+    }
   }
 }
 
-async function loadAdminStudents() {
+async function loadAdminStudents(silent = false) {
   const container = document.getElementById("admin-students-container");
   if (!container) return;
 
@@ -1151,12 +1230,14 @@ async function loadAdminStudents() {
       </div>
     `;
   } catch (err) {
-    container.innerHTML = `
-      <div style="padding: 1.5rem; text-align: center; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px;">
-        <p style="color: #e11d48; font-weight: 600; margin-bottom: 0.75rem;">Failed to load students: ${err.message}</p>
-        <button class="btn btn-primary btn-sm" onclick="reconnectSession()">Reconnect Session ⟳</button>
-      </div>
-    `;
+    if (!silent) {
+      container.innerHTML = `
+        <div style="padding: 1.5rem; text-align: center; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 8px;">
+          <p style="color: #e11d48; font-weight: 600; margin-bottom: 0.75rem;">Failed to load students: ${err.message}</p>
+          <button class="btn btn-primary btn-sm" onclick="reconnectSession()">Reconnect Session ⟳</button>
+        </div>
+      `;
+    }
   }
 }
 
@@ -1189,6 +1270,41 @@ function initApp() {
 
   document.getElementById("claim-form")?.addEventListener("submit", handleClaimSubmit);
 }
+
+// Global window function exports to guarantee inline HTML onclick handlers succeed in any scope
+window.apiRequest = apiRequest;
+window.showToast = showToast;
+window.getUser = getUser;
+window.getToken = getToken;
+window.setAuth = setAuth;
+window.clearAuth = clearAuth;
+window.fillDemo = fillDemo;
+window.reconnectSession = reconnectSession;
+window.updateNavigation = updateNavigation;
+window.switchAdminTab = switchAdminTab;
+window.switchStudentTab = switchStudentTab;
+window.loadAdminReports = loadAdminReports;
+window.loadAdminClaims = loadAdminClaims;
+window.loadAdminStats = loadAdminStats;
+window.loadAdminStudents = loadAdminStudents;
+window.updateItemStatus = updateItemStatus;
+window.deleteItemReport = deleteItemReport;
+window.updateClaimStatus = updateClaimStatus;
+window.loadStudentReports = loadStudentReports;
+window.loadStudentClaims = loadStudentClaims;
+window.viewItemDetails = viewItemDetails;
+window.openClaimModal = openClaimModal;
+window.closeModal = closeModal;
+window.handleClaimSubmit = handleClaimSubmit;
+window.openAivenModal = openAivenModal;
+window.closeAivenModal = closeAivenModal;
+window.testAivenFromModal = testAivenFromModal;
+window.saveAivenFromModal = saveAivenFromModal;
+window.checkAivenStatus = checkAivenStatus;
+window.initApp = initApp;
+window.initLogin = initLogin;
+window.initStudentDashboard = initStudentDashboard;
+window.initAdminDashboard = initAdminDashboard;
 
 if (document.readyState === "loading") {
   document.addEventListener("DOMContentLoaded", initApp);
