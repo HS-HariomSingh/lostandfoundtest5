@@ -10,10 +10,14 @@
     "ssl_mode": "REQUIRED"
   },
   "tables": [
-    "students",
-    "admins",
-    "items",
-    "item_claims"
+    "department",
+    "category",
+    "location",
+    "student",
+    "admin",
+    "item",
+    "claim",
+    "item_status_log"
   ],
-  "schema_file": "database/schema.sql"
+  "schema_file": "database/schema_defaultdb.sql"
 }

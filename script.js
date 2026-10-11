@@ -733,6 +733,141 @@ async function loadStudentClaims() {
   }
 }
 
+let aivenPollTimer = null;
+
+async function checkAivenStatus(showToastMsg = false) {
+  const badge = document.getElementById("aiven-db-badge");
+  try {
+    const res = await apiRequest("/api/aiven/status");
+    const isLive = res.connected || res.live_test?.success;
+    if (badge) {
+      if (isLive) {
+        badge.style.background = "#ecfdf5";
+        badge.style.color = "#047857";
+        badge.style.borderColor = "#a7f3d0";
+        badge.innerHTML = `🐬 Aiven MySQL Cloud Connected (${res.database || "defaultdb"})`;
+      } else {
+        badge.style.background = "#fffbeb";
+        badge.style.color = "#b45309";
+        badge.style.borderColor = "#fde68a";
+        badge.innerHTML = `🐬 Aiven MySQL (Auto-Reconnecting...)`;
+      }
+    }
+    renderAivenStatusBanner(res);
+
+    if (showToastMsg) {
+      if (isLive) {
+        showToast(`Connected to Aiven MySQL (${res.database || "defaultdb"}) on ${res.host}`);
+      } else {
+        showToast(`Aiven MySQL offline. Running in resilient local storage mode.`);
+      }
+    }
+    return res;
+  } catch (e) {
+    if (badge) {
+      badge.style.background = "#fffbeb";
+      badge.style.color = "#b45309";
+      badge.innerHTML = `🐬 Aiven MySQL (Auto-Reconnecting...)`;
+    }
+    return null;
+  }
+}
+
+function renderAivenStatusBanner(res) {
+  const banner = document.getElementById("modal-aiven-status-banner");
+  if (!banner || !res) return;
+  const isLive = res.connected || res.live_test?.success;
+  if (isLive) {
+    banner.style.background = "#ecfdf5";
+    banner.style.color = "#065f46";
+    banner.style.border = "1px solid #a7f3d0";
+    banner.innerHTML = `
+      <div style="font-size: 1.2rem;">✅</div>
+      <div>
+        <strong>Aiven MySQL Cloud is LIVE & Connected</strong><br>
+        Host: <code>${res.host}:${res.port}</code> | DB: <code>${res.database}</code> | User: <code>${res.user}</code><br>
+        <span style="font-size: 0.78rem; opacity: 0.9;">MySQL Server Version: ${res.live_test?.version || "Active"} | SSL: Required</span>
+      </div>
+    `;
+  } else {
+    banner.style.background = "#fffbeb";
+    banner.style.color = "#92400e";
+    banner.style.border = "1px solid #fde68a";
+    banner.innerHTML = `
+      <div style="font-size: 1.2rem;">⚠️</div>
+      <div>
+        <strong>Aiven Cloud Instance Offline / Hibernated</strong><br>
+        Target: <code>${res.host}:${res.port}</code><br>
+        <div style="font-size: 0.8rem; margin-top: 0.25rem;">
+          The app is continuously polling every 5s. If your Aiven service is paused, click <strong>Resume</strong> in <a href="https://console.aiven.io" target="_blank" style="color: #b45309; text-decoration: underline; font-weight: 600;">Aiven Console</a> to bring it online.
+        </div>
+      </div>
+    `;
+  }
+}
+
+function openAivenModal() {
+  const modal = document.getElementById("aiven-modal");
+  if (modal) {
+    modal.classList.add("open");
+    checkAivenStatus(false).then(res => {
+      if (res) {
+        if (document.getElementById("cfg-aiven-host") && res.host) document.getElementById("cfg-aiven-host").value = res.host;
+        if (document.getElementById("cfg-aiven-port") && res.port) document.getElementById("cfg-aiven-port").value = res.port;
+        if (document.getElementById("cfg-aiven-user") && res.user) document.getElementById("cfg-aiven-user").value = res.user;
+        if (document.getElementById("cfg-aiven-db") && res.database) document.getElementById("cfg-aiven-db").value = res.database;
+      }
+    });
+  }
+}
+
+function closeAivenModal() {
+  const modal = document.getElementById("aiven-modal");
+  if (modal) modal.classList.remove("open");
+}
+
+async function testAivenFromModal() {
+  showToast("Testing connection to Aiven MySQL...");
+  const res = await checkAivenStatus(false);
+  if (res && (res.connected || res.live_test?.success)) {
+    showToast(`✅ Successfully connected to Aiven MySQL (${res.database})!`);
+  } else {
+    showToast(`⚠️ Connection test failed: ${res?.lastError || 'Host offline'}`, true);
+  }
+}
+
+async function saveAivenFromModal() {
+  const host = document.getElementById("cfg-aiven-host")?.value?.trim();
+  const port = parseInt(document.getElementById("cfg-aiven-port")?.value || "14526", 10);
+  const user = document.getElementById("cfg-aiven-user")?.value?.trim();
+  const database = document.getElementById("cfg-aiven-db")?.value?.trim();
+  const password = document.getElementById("cfg-aiven-password")?.value?.trim();
+
+  if (!host || !user || !database) {
+    showToast("Please provide host, user, and database name", true);
+    return;
+  }
+
+  showToast("Updating Aiven MySQL configuration & connecting...");
+  try {
+    const res = await apiRequest("/api/aiven/config", "POST", {
+      host,
+      port,
+      user,
+      database,
+      password
+    });
+    if (res.success) {
+      showToast("✅ Connected to Aiven MySQL successfully!");
+    } else {
+      showToast(`Saved config. Aiven status: ${res.message}`, true);
+    }
+    checkAivenStatus(false);
+  } catch (err) {
+    showToast(`Failed: ${err.message}`, true);
+  }
+}
+
 async function initAdminDashboard() {
   const user = getUser();
   if (!user || user.role !== "admin") {
@@ -743,6 +878,10 @@ async function initAdminDashboard() {
   const officeElem = document.getElementById("admin-office");
   if (officeElem) officeElem.textContent = user.office_location || "Campus Security Office";
 
+  checkAivenStatus(false);
+  if (!aivenPollTimer) {
+    aivenPollTimer = setInterval(() => checkAivenStatus(false), 5000);
+  }
   loadAdminStats();
   loadAdminReports();
   loadAdminClaims();
@@ -872,25 +1011,33 @@ async function reconnectSession() {
 window.reconnectSession = reconnectSession;
 
 async function updateItemStatus(itemId, newStatus) {
+  if (!itemId || itemId === "undefined" || itemId === "null") {
+    showToast("Invalid item identifier", true);
+    return;
+  }
   try {
-    await apiRequest(`/api/admin/reports/${itemId}/status`, "PUT", { status: newStatus });
-    showToast(`Report updated to ${newStatus}`);
-    loadAdminReports();
-    loadAdminStats();
+    const res = await apiRequest(`/api/admin/reports/${encodeURIComponent(itemId)}/status`, "PUT", { status: newStatus });
+    showToast(res.message || `Report updated to ${newStatus}`);
+    await loadAdminReports();
+    await loadAdminStats();
   } catch (err) {
-    showToast(err.message, true);
+    showToast(err.message || "Failed to update report status", true);
   }
 }
 
 async function deleteItemReport(itemId) {
+  if (!itemId || itemId === "undefined" || itemId === "null") {
+    showToast("Invalid item identifier", true);
+    return;
+  }
   if (!confirm("Are you sure you want to delete this report? This cannot be undone.")) return;
   try {
-    await apiRequest(`/api/admin/reports/${itemId}`, "DELETE");
-    showToast("Report deleted");
-    loadAdminReports();
-    loadAdminStats();
+    const res = await apiRequest(`/api/admin/reports/${encodeURIComponent(itemId)}`, "DELETE");
+    showToast(res.message || "Report deleted");
+    await loadAdminReports();
+    await loadAdminStats();
   } catch (err) {
-    showToast(err.message, true);
+    showToast(err.message || "Failed to delete report", true);
   }
 }
 

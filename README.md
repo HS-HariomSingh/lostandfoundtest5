@@ -7,165 +7,113 @@ A lightweight, production-ready Lost and Found portal built for colleges and uni
 ## 1. Technology Stack
 
 - **Frontend:** HTML5, CSS3, Vanilla JavaScript (zero frontend frameworks)
-- **Backend:** Python FastAPI
-- **Database:** Firebase Cloud Firestore
+- **Backend:** Node.js Express & TypeScript / Python FastAPI
+- **Database:** Aiven MySQL (Cloud Relational Database) & MySQL Workbench 8.0+
 - **Authentication:** Token-based session authentication with SHA-256 password hashing
 - **Communication:** REST APIs using standard `fetch()`
 
 ---
 
-## 2. Project Structure
+## 2. Normalized Relational Database Schema
 
-```text
-lost-and-found/
-├── backend/
-│   ├── main.py
-│   ├── firebase.py
-│   ├── requirements.txt
-│   └── .env.example
-├── frontend/
-│   ├── index.html
-│   ├── items.html
-│   ├── login.html
-│   ├── student-dashboard.html
-│   ├── admin-dashboard.html
-│   ├── style.css
-│   └── script.js
-├── firestore.rules
-└── README.md
-```
+The database follows a normalized relational structure:
 
----
+### 1. `DEPARTMENT`
+- `department_id` (VARCHAR(64), Primary Key)
+- `department_name` (VARCHAR(150), Candidate Key - UNIQUE)
 
-## 3. Database Schema (Firestore Collections)
+### 2. `CATEGORY`
+- `category_id` (VARCHAR(64), Primary Key)
+- `category_name` (VARCHAR(100), Candidate Key - UNIQUE)
 
-1. **`students`**
-   - `id` (string): Student unique document identifier
-   - `student_id` (string): College Roll / ID Number (e.g., `CS202401`)
-   - `name` (string): Full student name
-   - `email` (string): Campus student email
-   - `password_hash` (string): SHA-256 encrypted password
-   - `department` (string): Department / major
-   - `phone` (string): Contact number
-   - `role` (string): `student`
+### 3. `LOCATION`
+- `location_id` (VARCHAR(64), Primary Key)
+- `location_name` (VARCHAR(255), Candidate Key - UNIQUE)
 
-2. **`admins`**
-   - `id` (string): Administrator document identifier
-   - `admin_id` (string): Administrative staff ID
-   - `name` (string): Office or Officer Name
-   - `email` (string): Administrator official email
-   - `password_hash` (string): SHA-256 encrypted password
-   - `office_location` (string): Campus office room / building
-   - `phone` (string): Department phone extension
-   - `role` (string): `admin`
+### 4. `STUDENT`
+- `student_id` (VARCHAR(64), Primary Key)
+- `roll_no` (VARCHAR(64), Candidate Key - UNIQUE)
+- `name` (VARCHAR(255))
+- `email` (VARCHAR(255), Candidate Key - UNIQUE)
+- `password_hash` (VARCHAR(255))
+- `phone` (VARCHAR(32))
+- `department_id` (VARCHAR(64), Foreign Key → `DEPARTMENT(department_id)`)
 
-3. **`items`**
-   - `id` (string): Unique item report identifier
-   - `title` (string): Item headline/name
-   - `type` (string): `lost` or `found`
-   - `category` (string): `Electronics`, `Personal Belongings`, `Study Materials`, `Accessories`, etc.
-   - `description` (string): Identifying details, marks, and content
-   - `location` (string): Campus location where lost or found
-   - `date` (string): YYYY-MM-DD
-   - `image_url` (string): Optional image link
-   - `status` (string): `pending`, `approved`, `rejected`, `claimed`, `resolved`
-   - `student_id` (string): Submitting student document ID
-   - `student_name` (string): Submitting student name
-   - `student_email` (string): Submitting student email
-   - `created_at` (string): ISO timestamp
+### 5. `ADMIN`
+- `admin_id` (VARCHAR(64), Primary Key)
+- `staff_code` (VARCHAR(64), Candidate Key - UNIQUE)
+- `name` (VARCHAR(255))
+- `email` (VARCHAR(255), Candidate Key - UNIQUE)
+- `password_hash` (VARCHAR(255))
+- `office_location` (VARCHAR(255))
+- `phone` (VARCHAR(32))
 
-4. **`item_claims`**
-   - `id` (string): Claim document identifier
-   - `item_id` (string): Reference to the claimed item document
-   - `item_title` (string): Title of claimed item
-   - `student_id` (string): Reference to claiming student
-   - `student_name` (string): Claiming student full name
-   - `student_email` (string): Claiming student email
-   - `proof_description` (string): Distinguishing proof and verification details
-   - `contact_phone` (string): Claimant contact number
-   - `status` (string): `pending`, `approved`, `rejected`
-   - `created_at` (string): ISO timestamp
+### 6. `ITEM`
+- `item_id` (VARCHAR(64), Primary Key)
+- `title` (VARCHAR(255))
+- `item_type` (ENUM('lost', 'found'))
+- `description` (TEXT)
+- `event_date` (VARCHAR(32))
+- `image_url` (VARCHAR(2048))
+- `status` (ENUM('pending', 'approved', 'rejected', 'claimed', 'resolved'))
+- `category_id` (VARCHAR(64), Foreign Key → `CATEGORY(category_id)`)
+- `location_id` (VARCHAR(64), Foreign Key → `LOCATION(location_id)`)
+- `reported_by` (VARCHAR(64), Foreign Key → `STUDENT(student_id)`)
+- `reviewed_by` (VARCHAR(64), Foreign Key → `ADMIN(admin_id)`, Nullable)
+- `created_at` (TIMESTAMP)
+- `updated_at` (TIMESTAMP)
+
+### 7. `CLAIM`
+- `claim_id` (VARCHAR(64), Primary Key)
+- `proof_description` (TEXT)
+- `contact_phone` (VARCHAR(32))
+- `status` (ENUM('pending', 'approved', 'rejected'))
+- `item_id` (VARCHAR(64), Foreign Key → `ITEM(item_id)`)
+- `student_id` (VARCHAR(64), Foreign Key → `STUDENT(student_id)`)
+- `reviewed_by` (VARCHAR(64), Foreign Key → `ADMIN(admin_id)`, Nullable)
+- **Composite Candidate Key:** `(item_id, student_id)`, enforced by `UNIQUE` constraint.
+
+### 8. `ITEM_STATUS_LOG`
+- `log_id` (VARCHAR(64), Primary Key)
+- `old_status` (VARCHAR(32), Nullable)
+- `new_status` (VARCHAR(32))
+- `changed_at` (TIMESTAMP)
+- `item_id` (VARCHAR(64), Foreign Key → `ITEM(item_id)`)
 
 ---
 
-## 4. Setup and Installation
+## 3. Connecting to Aiven MySQL & MySQL Workbench
 
-### Prerequisites
+1. **Aiven Cloud Connection:**
+   Configure environment variables in `.env`:
+   ```bash
+   AIVEN_MYSQL_HOST="YOUR_AIVEN_HOST.aivencloud.com"
+   AIVEN_MYSQL_PORT="14526"
+   AIVEN_MYSQL_USER="avnadmin"
+   AIVEN_MYSQL_PASSWORD="YOUR_AIVEN_PASSWORD"
+   AIVEN_MYSQL_DATABASE="defaultdb"
+   AIVEN_MYSQL_URL="mysql://avnadmin:YOUR_PASSWORD@YOUR_AIVEN_HOST:14526/defaultdb?ssl-mode=REQUIRED"
+   ```
 
-- Python 3.10+
-- Modern Web Browser
-
-### Step 1: Clone or Enter the Project Directory
-
-```bash
-cd lost-and-found
-```
-
-### Step 2: Install Backend Dependencies
-
-```bash
-cd backend
-pip install -r requirements.txt
-```
-### Step 3: Run the Backend Server
-
-```bash
-cd backend
-uvicorn main:app --reload --port 8000
-```
-
-The API documentation will be available at `http://localhost:8000/docs`.
-
-### Step 4: Open the Frontend
-
-You can view the frontend by opening `frontend/index.html` directly in any web browser, or via any static file server:
-
-```bash
-cd frontend
-python3 -m http.server 3000
-```
-
-FastAPI also serves the frontend automatically at `http://localhost:8000/`.
+2. **MySQL Workbench Connection:**
+   - Hostname: `YOUR_AIVEN_HOST.aivencloud.com`
+   - Port: `14526`
+   - Username: `avnadmin`
+   - Password: `YOUR_AIVEN_PASSWORD`
+   - Default Schema: `defaultdb`
+   - SSL: Require
+   - Open and execute `database/schema_defaultdb.sql` or `database/schema.sql`.
 
 ---
 
-## 5. Demo Credentials
+## 4. Seed Test Credentials
 
-### Pre-loaded Students
+- **Admin Login:**
+  - Email: `hariom18august@gmail.com`
+  - Password: `admin123` (or `admin`)
+  - Role: Administrator
 
-| Email | Password | Name | Department |
-| :--- | :--- | :--- | :--- |
-| `arth@campus.edu` | `password123` | Arth | Computer Science |
-| `shivam@campus.edu` | `password123` | Shivam | Electronics & Comm. |
-| `marcus.j@campus.edu` | `password123` | Marcus Johnson | Mechanical Engineering |
-| `elena.r@campus.edu` | `password123` | Elena Rodriguez | Biotechnology |
-| `david.kim@campus.edu` | `password123` | David Kim | Business Admin |
-
-### Pre-loaded Administrator
-
-| Email | Password | Name | Office |
-| :--- | :--- | :--- | :--- |
-| `hariom18august@gmail.com` | `admin123` | Hariom Singh | Student Activity Center Rm 104 |
-
----
-
-## 6. API Reference
-
-| Endpoint | Method | Role | Description |
-| :--- | :--- | :--- | :--- |
-| `/api/auth/login` | `POST` | Public | Student and admin login |
-| `/api/auth/me` | `GET` | Authenticated | Retrieve current session user |
-| `/api/auth/logout` | `POST` | Authenticated | Invalidate authentication session |
-| `/api/items` | `GET` | Public | List, search, and filter items |
-| `/api/items/{id}` | `GET` | Public | Get single item details |
-| `/api/items` | `POST` | Authenticated | Submit lost or found item report |
-| `/api/student/reports` | `GET` | Student | List reports by authenticated student |
-| `/api/student/claims` | `GET` | Student | List claims by authenticated student |
-| `/api/claims` | `POST` | Student | Submit claim on a found item |
-| `/api/admin/stats` | `GET` | Admin | Dashboard summary counters |
-| `/api/admin/reports` | `GET` | Admin | View all submitted reports |
-| `/api/admin/reports/{id}/status` | `PUT` | Admin | Approve, reject, or resolve report |
-| `/api/admin/reports/{id}` | `DELETE` | Admin | Delete inappropriate report |
-| `/api/admin/claims` | `GET` | Admin | View all submitted claims |
-| `/api/admin/claims/{id}/status` | `PUT` | Admin | Approve or reject claim |
-| `/api/admin/students` | `GET` | Admin | List all registered students |
+- **Student Login:**
+  - Email: `arth@campus.edu` (Roll No: `CS202401`)
+  - Password: `password123`
+  - Role: Student

@@ -32,8 +32,12 @@
             Operating Office: <strong id="admin-office" style="color: #0f172a;">Campus Security & Lost-Found Desk</strong>
           </p>
         </div>
-        <div style="display: flex; gap: 0.5rem;">
-          <button class="btn btn-outline btn-sm" onclick="loadAdminReports(); loadAdminClaims(); loadAdminStats();">Refresh Data ⟳</button>
+        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+          <div id="aiven-db-badge" class="user-badge" onclick="openAivenModal()" style="cursor: pointer; background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; font-size: 0.8rem; padding: 0.35rem 0.65rem;" title="Click to view connection details">
+            🐬 Aiven MySQL Cloud Connected
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="openAivenModal()">DB Settings ⚙</button>
+          <button class="btn btn-outline btn-sm" onclick="loadAdminReports(); loadAdminClaims(); loadAdminStats();">Refresh Data</button>
         </div>
       </div>
     </div>
@@ -96,7 +100,61 @@
       </div>
       <div id="admin-students-container"></div>
     </div>
-  </main>
+  <!-- Aiven Cloud Database Manager Modal -->
+  <div id="aiven-modal" class="modal-backdrop">
+    <div class="modal-content" style="max-width: 620px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span style="font-size: 1.3rem;">🐬</span>
+          <h3 class="modal-title">Aiven MySQL Cloud Connection</h3>
+        </div>
+        <button class="modal-close" onclick="closeAivenModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="modal-aiven-status-banner" style="padding: 0.85rem 1rem; border-radius: 8px; font-size: 0.88rem; line-height: 1.4; display: flex; align-items: flex-start; gap: 0.6rem;">
+          <!-- Dynamically populated -->
+        </div>
+
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem;">
+          <h4 style="font-size: 0.9rem; font-weight: 700; margin-bottom: 0.75rem; color: #1e293b;">Connection Parameters</h4>
+          <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+            <div class="form-group">
+              <label class="form-label" style="font-size: 0.8rem;">Aiven Hostname</label>
+              <input id="cfg-aiven-host" class="form-control" type="text" placeholder="mysql-xxx.aivencloud.com" value="mysql-3b22f65e-hariom18august-b043.h.aivencloud.com">
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-size: 0.8rem;">Port</label>
+              <input id="cfg-aiven-port" class="form-control" type="number" placeholder="14526" value="14526">
+            </div>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+            <div class="form-group">
+              <label class="form-label" style="font-size: 0.8rem;">User</label>
+              <input id="cfg-aiven-user" class="form-control" type="text" placeholder="avnadmin" value="avnadmin">
+            </div>
+            <div class="form-group">
+              <label class="form-label" style="font-size: 0.8rem;">Database Schema</label>
+              <input id="cfg-aiven-db" class="form-control" type="text" placeholder="defaultdb" value="defaultdb">
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom: 0.5rem;">
+            <label class="form-label" style="font-size: 0.8rem;">Aiven Password</label>
+            <input id="cfg-aiven-password" class="form-control" type="password" placeholder="Enter password (leave blank to keep current)" value="">
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 0.5rem; justify-content: flex-end; align-items: center; flex-wrap: wrap;">
+          <button class="btn btn-outline btn-sm" onclick="testAivenFromModal()">Test Connection Now</button>
+          <button class="btn btn-primary btn-sm" onclick="saveAivenFromModal()">Save & Connect</button>
+        </div>
+
+        <div style="background: #eff6ff; border: 1px dashed #93c5fd; border-radius: 8px; padding: 0.85rem; font-size: 0.8rem; color: #1e3a8a;">
+          <strong>💡 Aiven Console Tip:</strong>
+          If connection status says <em>ENOTFOUND</em>, go to <a href="https://console.aiven.io" target="_blank" style="color: #2563eb; text-decoration: underline;">console.aiven.io</a>, click your MySQL service, and verify it is <strong>Running</strong> (not Powered Off or Paused). Once running, the connection will automatically link in real time without downtime!
+        </div>
+      </div>
+    </div>
+  </div>
 
   <footer class="site-footer">
     <div style="max-width: 1200px; margin: 0 auto;">

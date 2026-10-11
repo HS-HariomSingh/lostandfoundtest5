@@ -16,7 +16,7 @@ from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from firebase import get_db, hash_password
+from database import get_db, hash_password
 
 app = FastAPI(title="Campus Lost and Found API", version="1.0.0")
 
@@ -364,21 +364,56 @@ def get_admin_stats(admin: dict = Depends(require_admin)):
 def get_all_reports(admin: dict = Depends(require_admin)):
     db = get_db()
     docs = db.collection("items").stream()
-    items = [d.to_dict() for d in docs]
+    items = []
+    for d in docs:
+        dt = d.to_dict()
+        if dt:
+            if not dt.get("id"):
+                dt["id"] = d.id
+            items.append(dt)
     items.sort(key=lambda x: x.get("created_at", ""), reverse=True)
     return {"items": items}
 
 @app.put("/api/admin/reports/{item_id}/status")
 def update_report_status(item_id: str, req: StatusUpdate, admin: dict = Depends(require_admin)):
-    db = get_db()
-    doc_ref = db.collection("items").document(item_id)
-    doc = doc_ref.get()
-    if not doc.exists:
-        raise HTTPException(status_code=404, detail="Item not found")
-
     valid_statuses = ["pending", "approved", "rejected", "claimed", "resolved"]
     if req.status not in valid_statuses:
         raise HTTPException(status_code=400, detail=f"Invalid status: {req.status}")
+
+    db = get_db()
+    doc_ref = db.collection("items").document(item_id)
+    doc = doc_ref.get()
+
+    if not doc.exists:
+        matches = list(db.collection("items").where("id", "==", item_id).stream())
+        if matches:
+            doc_ref = db.collection("items").document(matches[0].id)
+            doc = matches[0]
+        else:
+            all_items = list(db.collection("items").stream())
+            for d in all_items:
+                data = d.to_dict() or {}
+                if (data.get("id") or "").lower() == item_id.lower() or d.id.lower() == item_id.lower():
+                    doc_ref = db.collection("items").document(d.id)
+                    doc = d
+                    break
+
+    if not doc or not doc.exists:
+        data_file = os.path.join(os.path.dirname(__file__), "local_db.json")
+        if os.path.exists(data_file):
+            try:
+                with open(data_file, "r", encoding="utf-8") as f:
+                    local_data = json.load(f)
+                items_dict = local_data.get("items", {})
+                for k, v in items_dict.items():
+                    if k == item_id or v.get("id") == item_id or str(v.get("id", "")).lower() == item_id.lower():
+                        v["status"] = req.status
+                        with open(data_file, "w", encoding="utf-8") as f:
+                            json.dump(local_data, f, indent=2)
+                        return {"message": f"Item status updated to {req.status}"}
+            except Exception:
+                pass
+        raise HTTPException(status_code=404, detail="Item not found")
 
     doc_ref.update({"status": req.status})
     return {"message": f"Item status updated to {req.status}"}
@@ -388,7 +423,40 @@ def delete_report(item_id: str, admin: dict = Depends(require_admin)):
     db = get_db()
     doc_ref = db.collection("items").document(item_id)
     doc = doc_ref.get()
+
     if not doc.exists:
+        matches = list(db.collection("items").where("id", "==", item_id).stream())
+        if matches:
+            doc_ref = db.collection("items").document(matches[0].id)
+            doc = matches[0]
+        else:
+            all_items = list(db.collection("items").stream())
+            for d in all_items:
+                data = d.to_dict() or {}
+                if (data.get("id") or "").lower() == item_id.lower() or d.id.lower() == item_id.lower():
+                    doc_ref = db.collection("items").document(d.id)
+                    doc = d
+                    break
+
+    if not doc or not doc.exists:
+        data_file = os.path.join(os.path.dirname(__file__), "local_db.json")
+        if os.path.exists(data_file):
+            try:
+                with open(data_file, "r", encoding="utf-8") as f:
+                    local_data = json.load(f)
+                items_dict = local_data.get("items", {})
+                found_key = None
+                for k, v in items_dict.items():
+                    if k == item_id or v.get("id") == item_id or str(v.get("id", "")).lower() == item_id.lower():
+                        found_key = k
+                        break
+                if found_key:
+                    del items_dict[found_key]
+                    with open(data_file, "w", encoding="utf-8") as f:
+                        json.dump(local_data, f, indent=2)
+                    return {"message": "Report deleted successfully"}
+            except Exception:
+                pass
         raise HTTPException(status_code=404, detail="Item not found")
 
     doc_ref.delete()

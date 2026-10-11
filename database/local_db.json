@@ -1,0 +1,280 @@
+{
+  "department": {
+    "dept_cs": {
+      "department_id": "dept_cs",
+      "department_name": "Computer Science"
+    },
+    "dept_ec": {
+      "department_id": "dept_ec",
+      "department_name": "Electronics & Communication"
+    },
+    "dept_me": {
+      "department_id": "dept_me",
+      "department_name": "Mechanical Engineering"
+    },
+    "dept_bt": {
+      "department_id": "dept_bt",
+      "department_name": "Biotechnology"
+    },
+    "dept_ba": {
+      "department_id": "dept_ba",
+      "department_name": "Business Administration"
+    }
+  },
+  "category": {
+    "cat_elec": {
+      "category_id": "cat_elec",
+      "category_name": "Electronics"
+    },
+    "cat_belong": {
+      "category_id": "cat_belong",
+      "category_name": "Personal Belongings"
+    },
+    "cat_study": {
+      "category_id": "cat_study",
+      "category_name": "Study Materials"
+    },
+    "cat_access": {
+      "category_id": "cat_access",
+      "category_name": "Accessories"
+    },
+    "cat_docs": {
+      "category_id": "cat_docs",
+      "category_name": "Cards & Documents"
+    },
+    "cat_other": {
+      "category_id": "cat_other",
+      "category_name": "Other"
+    }
+  },
+  "location": {
+    "loc_lib": {
+      "location_id": "loc_lib",
+      "location_name": "Main Campus Library 2nd Floor"
+    },
+    "loc_dining": {
+      "location_id": "loc_dining",
+      "location_name": "Campus Dining Hall West Entrance"
+    },
+    "loc_eng": {
+      "location_id": "loc_eng",
+      "location_name": "Engineering Hall Room 302"
+    },
+    "loc_sports": {
+      "location_id": "loc_sports",
+      "location_name": "Athletics Complex Bleachers"
+    },
+    "loc_center": {
+      "location_id": "loc_center",
+      "location_name": "Student Center Lounge 1st Floor"
+    },
+    "loc_ntb": {
+      "location_id": "loc_ntb",
+      "location_name": "NTB Building Quad"
+    }
+  },
+  "student": {
+    "std_101": {
+      "student_id": "std_101",
+      "roll_no": "CS202401",
+      "name": "Arth",
+      "email": "arth@campus.edu",
+      "password_hash": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
+      "phone": "555-0101",
+      "department_id": "dept_cs",
+      "department_name": "Computer Science",
+      "created_at": "2026-10-01T09:00:00Z"
+    },
+    "std_102": {
+      "student_id": "std_102",
+      "roll_no": "EC202415",
+      "name": "Shivam",
+      "email": "shivam@campus.edu",
+      "password_hash": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
+      "phone": "555-0102",
+      "department_id": "dept_ec",
+      "department_name": "Electronics & Communication",
+      "created_at": "2026-10-02T10:15:00Z"
+    },
+    "std_103": {
+      "student_id": "std_103",
+      "roll_no": "ME202432",
+      "name": "Marcus Johnson",
+      "email": "marcus.j@campus.edu",
+      "password_hash": "ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f",
+      "phone": "555-0103",
+      "department_id": "dept_me",
+      "department_name": "Mechanical Engineering",
+      "created_at": "2026-10-03T11:00:00Z"
+    }
+  },
+  "admin": {
+    "adm_001": {
+      "admin_id": "adm_001",
+      "staff_code": "STAFF-SEC-01",
+      "name": "Hariom Singh",
+      "email": "hariom18august@gmail.com",
+      "password_hash": "240be518fabd2724ddb6f04eeb1da5967448d7e831c08c8fa822809f74c720a9",
+      "office_location": "Student Activity Center Rm 104",
+      "phone": "555-0199",
+      "created_at": "2026-10-01T08:00:00Z"
+    }
+  },
+  "item": {
+    "item_1": {
+      "item_id": "item_1",
+      "title": "MacBook Air M2 Silver",
+      "item_type": "lost",
+      "category_id": "cat_elec",
+      "category_name": "Electronics",
+      "description": "Silver MacBook Air in a dark grey protective felt sleeve with campus computer club stickers on lid.",
+      "location_id": "loc_lib",
+      "location_name": "Main Campus Library 2nd Floor",
+      "event_date": "2026-10-06",
+      "image_url": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?auto=format&fit=crop&w=600&q=80",
+      "status": "approved",
+      "reported_by": "std_101",
+      "student_name": "Arth",
+      "student_email": "arth@campus.edu",
+      "roll_no": "CS202401",
+      "reviewed_by": "adm_001",
+      "created_at": "2026-10-06T14:30:00Z"
+    },
+    "item_2": {
+      "item_id": "item_2",
+      "title": "Brown Leather Bi-fold Wallet",
+      "item_type": "found",
+      "category_id": "cat_belong",
+      "category_name": "Personal Belongings",
+      "description": "Brown leather wallet containing student transit pass and library card. Turned into dining hall counter.",
+      "location_id": "loc_dining",
+      "location_name": "Campus Dining Hall West Entrance",
+      "event_date": "2026-10-07",
+      "image_url": "https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&w=600&q=80",
+      "status": "approved",
+      "reported_by": "std_102",
+      "student_name": "Shivam",
+      "student_email": "shivam@campus.edu",
+      "roll_no": "EC202415",
+      "reviewed_by": "adm_001",
+      "created_at": "2026-10-07T12:00:00Z"
+    },
+    "item_3": {
+      "item_id": "item_3",
+      "title": "TI-84 Plus CE Graphing Calculator",
+      "item_type": "lost",
+      "category_id": "cat_study",
+      "category_name": "Study Materials",
+      "description": "Black TI-84 Plus CE graphing calculator with cobalt blue sliding cover. Initials MJ on battery compartment.",
+      "location_id": "loc_eng",
+      "location_name": "Engineering Hall Room 302",
+      "event_date": "2026-10-08",
+      "image_url": "https://images.unsplash.com/photo-1594980596870-8aa52a78d8cd?auto=format&fit=crop&w=600&q=80",
+      "status": "approved",
+      "reported_by": "std_103",
+      "student_name": "Marcus Johnson",
+      "student_email": "marcus.j@campus.edu",
+      "roll_no": "ME202432",
+      "reviewed_by": "adm_001",
+      "created_at": "2026-10-08T09:15:00Z"
+    },
+    "item_4": {
+      "item_id": "item_4",
+      "title": "Hydro Flask Water Bottle 32oz",
+      "item_type": "found",
+      "category_id": "cat_access",
+      "category_name": "Accessories",
+      "description": "Cobalt blue stainless steel bottle with yellow hiking club sticker on side. Found left on bleachers.",
+      "location_id": "loc_sports",
+      "location_name": "Athletics Complex Bleachers",
+      "event_date": "2026-10-08",
+      "image_url": "https://images.unsplash.com/photo-1602143407151-7111542de6e8?auto=format&fit=crop&w=600&q=80",
+      "status": "claimed",
+      "reported_by": "std_101",
+      "student_name": "Arth",
+      "student_email": "arth@campus.edu",
+      "roll_no": "CS202401",
+      "reviewed_by": "adm_001",
+      "created_at": "2026-10-08T11:00:00Z"
+    },
+    "item_5": {
+      "item_id": "item_5",
+      "title": "Dell XPS 15 Silver Laptop",
+      "item_type": "lost",
+      "category_id": "cat_elec",
+      "category_name": "Electronics",
+      "description": "Silver Dell laptop with student department sticker on base reported lost near Library.",
+      "location_id": "loc_lib",
+      "location_name": "Main Campus Library 2nd Floor",
+      "event_date": "2026-10-10",
+      "image_url": "https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?auto=format&fit=crop&w=600&q=80",
+      "status": "approved",
+      "reported_by": "std_101",
+      "student_name": "Arth",
+      "student_email": "arth@campus.edu",
+      "roll_no": "CS202401",
+      "reviewed_by": "adm_001",
+      "created_at": "2026-10-10T16:00:00Z"
+    }
+  },
+  "claim": {
+    "claim_1": {
+      "claim_id": "claim_1",
+      "proof_description": "Wallet has my student transit ID ending in 2432 and driver license.",
+      "contact_phone": "555-0103",
+      "status": "pending",
+      "item_id": "item_2",
+      "item_title": "Brown Leather Bi-fold Wallet",
+      "student_id": "std_103",
+      "student_name": "Marcus Johnson",
+      "student_email": "marcus.j@campus.edu",
+      "roll_no": "ME202432",
+      "reviewed_by": null,
+      "created_at": "2026-10-08T14:00:00Z"
+    }
+  },
+  "item_status_log": {
+    "log_item_1_init": {
+      "log_id": "log_item_1_init",
+      "old_status": null,
+      "new_status": "approved",
+      "item_id": "item_1",
+      "changed_at": "2026-10-06T14:30:00Z"
+    },
+    "log_item_2_init": {
+      "log_id": "log_item_2_init",
+      "old_status": null,
+      "new_status": "approved",
+      "item_id": "item_2",
+      "changed_at": "2026-10-07T12:00:00Z"
+    },
+    "log_item_3_init": {
+      "log_id": "log_item_3_init",
+      "old_status": null,
+      "new_status": "approved",
+      "item_id": "item_3",
+      "changed_at": "2026-10-08T09:15:00Z"
+    },
+    "log_item_4_init": {
+      "log_id": "log_item_4_init",
+      "old_status": "approved",
+      "new_status": "claimed",
+      "item_id": "item_4",
+      "changed_at": "2026-10-08T16:00:00Z"
+    },
+    "log_item_5_init": {
+      "log_id": "log_item_5_init",
+      "old_status": null,
+      "new_status": "pending",
+      "item_id": "item_5",
+      "changed_at": "2026-10-10T16:00:00Z"
+    },
+    "log_item_5_1791701625899": {
+      "log_id": "log_item_5_1791701625899",
+      "old_status": "pending",
+      "new_status": "approved",
+      "item_id": "item_5",
+      "changed_at": "2026-10-11T06:53:45.899Z"
+    }
+  }
+}
