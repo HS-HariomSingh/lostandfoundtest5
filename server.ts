@@ -303,7 +303,7 @@ app.get("/api/student/reports", async (req, res) => {
     res.status(403).json({ detail: "Student access required" });
     return;
   }
-  const items = await getStudentReports(user.id);
+  const items = await getStudentReports(user);
   res.json({ items });
 });
 
@@ -313,7 +313,7 @@ app.get("/api/student/claims", async (req, res) => {
     res.status(403).json({ detail: "Student access required" });
     return;
   }
-  const claims = await getStudentClaims(user.id);
+  const claims = await getStudentClaims(user);
   res.json({ claims });
 });
 
