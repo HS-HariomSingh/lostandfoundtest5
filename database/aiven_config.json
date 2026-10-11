@@ -3,12 +3,11 @@
   "title": "Aiven MySQL Service Configuration",
   "service_type": "mysql",
   "connection": {
-    "host": "mysql-9ff1e25-hariom18august-b043.g.aivencloud.com",
+    "host": "mysql-3b22f65e-hariom18august-b043.h.aivencloud.com",
     "port": 14526,
     "user": "avnadmin",
     "database": "defaultdb",
-    "ssl_mode": "REQUIRED",
-    "status": "CONNECTED"
+    "ssl_mode": "REQUIRED"
   },
   "tables": [
     "students",
