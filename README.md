@@ -108,31 +108,7 @@ cd backend
 pip install -r requirements.txt
 ```
 
-### Step 3: Firebase Configuration
 
-Firebase Cloud Firestore has been provisioned for this application:
-- **Firebase Project ID**: `yttriferous-magpie-sthv3`
-- **Firestore Database ID**: `ai-studio-campuslostandfou-d3183e1e-21f7-4954-bec9-b65ef0c84c1d`
-- **Region**: `asia-south1`
-
-To connect the Python backend directly to your live cloud project:
-1. In the [Firebase Console](https://console.firebase.google.com/project/yttriferous-magpie-sthv3), navigate to **Project Settings > Service accounts**.
-2. Click **Generate new private key** and download the JSON file.
-3. Save the file to `lost-and-found/backend/serviceAccountKey.json`.
-4. Copy `.env.example` to `.env`:
-   ```bash
-   cp .env.example .env
-   ```
-5. Ensure `.env` includes:
-   ```ini
-   FIREBASE_SERVICE_ACCOUNT_KEY=serviceAccountKey.json
-   FIREBASE_PROJECT_ID=yttriferous-magpie-sthv3
-   FIRESTORE_DATABASE_ID=ai-studio-campuslostandfou-d3183e1e-21f7-4954-bec9-b65ef0c84c1d
-   ```
-
-*Note: If running without an external key, the system automatically runs with the identical Firestore collection data schema locally.*
-
-### Step 4: Run the FastAPI Backend Server
 
 ```bash
 cd backend
